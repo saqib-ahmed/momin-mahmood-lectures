@@ -57,11 +57,20 @@ npm install -g eas-cli
 # Login to Expo
 eas login
 
+# EAS configuration (One time only)
+eas init
+eas build:configure
+
 # Build for iOS
 eas build --platform ios
 
 # Build for Android
 eas build --platform android
+```
+
+Add `--local` to build on the local machine like this:
+```bash
+eas build --platform android --local
 ```
 
 ## Project Structure
