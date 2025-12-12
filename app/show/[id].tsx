@@ -345,12 +345,11 @@ const styles = StyleSheet.create({
   },
   downloadedChip: {
     backgroundColor: COLORS.surfaceLight,
-    height: 24,
     borderWidth: 1,
     borderColor: COLORS.primary,
   },
   downloadedChipText: {
-    fontSize: 10,
+    fontSize: 11,
     color: COLORS.primary,
   },
 });

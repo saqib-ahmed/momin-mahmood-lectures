@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Episode, DownloadProgress } from '../types';
 
 type ProgressCallback = (progress: DownloadProgress) => void;

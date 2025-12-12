@@ -1,8 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { downloadService } from '../services/downloadService';
 import { useDownloadStore } from '../stores/downloadStore';
 import { useFeedStore } from '../stores/feedStore';
 import { Episode, DownloadProgress } from '../types';
+
+// Throttle helper
+const PROGRESS_UPDATE_INTERVAL = 500; // Update UI every 500ms
 
 export function useDownloads() {
   const {
@@ -25,6 +28,7 @@ export function useDownloads() {
 
   const { getEpisodeById } = useFeedStore();
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
+  const lastProgressUpdateRef = useRef<Record<string, number>>({});
 
   // Start downloading an episode
   const startDownload = useCallback(
@@ -42,19 +46,38 @@ export function useDownloads() {
         status: 'downloading',
       });
 
+      // Initialize last update time
+      lastProgressUpdateRef.current[episode.id] = 0;
+
       try {
         const localPath = await downloadService.downloadEpisode(
           episode,
           (progress: DownloadProgress) => {
-            setDownloadProgress(episode.id, progress);
+            // Throttle progress updates to prevent UI freezing
+            const now = Date.now();
+            const lastUpdate = lastProgressUpdateRef.current[episode.id] || 0;
+
+            // Always update on completion, otherwise throttle
+            if (progress.status === 'completed' || now - lastUpdate >= PROGRESS_UPDATE_INTERVAL) {
+              lastProgressUpdateRef.current[episode.id] = now;
+              setDownloadProgress(episode.id, progress);
+            }
           }
         );
+
+        // Clean up throttle tracking
+        delete lastProgressUpdateRef.current[episode.id];
+
+        // Debug logging for download completion
+        console.log('[Download] Completed:', episode.id);
+        console.log('[Download] Local path saved:', localPath);
 
         // Add to downloads store
         addDownload(episode, localPath);
         removeDownloadProgress(episode.id);
       } catch (error) {
         console.error('Download failed:', error);
+        delete lastProgressUpdateRef.current[episode.id];
         removeDownloadProgress(episode.id);
         throw error;
       }
