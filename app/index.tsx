@@ -48,7 +48,7 @@ function LectureSeriesCard({ show, onPress }: { show: Show; onPress: () => void 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { shows, isLoading, isRefreshing, onRefresh, error } = useRSSFeed();
+  const { shows, isLoading, isRefreshing, onRefresh, error, isOffline, isHydrated } = useRSSFeed();
   const { currentEpisode } = usePlayerStore();
 
   const bottomPadding = currentEpisode ? 80 : 0;
@@ -58,7 +58,20 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Lecture Series</Text>
-          <Text style={styles.headerSubtitle}>Islamic Knowledge & Guidance</Text>
+          <View style={styles.subtitleRow}>
+            <Text style={styles.headerSubtitle}>Islamic Knowledge & Guidance</Text>
+            {isOffline && (
+              <View style={styles.offlineBadge}>
+                <IconButton
+                  icon="wifi-off"
+                  iconColor={COLORS.gold}
+                  size={12}
+                  style={styles.offlineIcon}
+                />
+                <Text style={styles.offlineText}>Offline</Text>
+              </View>
+            )}
+          </View>
         </View>
         <View style={styles.headerActions}>
           <IconButton
@@ -85,7 +98,9 @@ export default function HomeScreen() {
     </View>
   );
 
-  if (isLoading && shows.length === 0) {
+  // Show loading only when we have no cached data and are actually loading
+  // Don't show loading during hydration if we have cached data
+  if (!isHydrated || (isLoading && shows.length === 0)) {
     return (
       <ImageBackground
         source={require('../assets/background-transparent.png')}
@@ -100,6 +115,7 @@ export default function HomeScreen() {
     );
   }
 
+  // Only show error screen if we have no cached data
   if (error && shows.length === 0) {
     return (
       <ImageBackground
@@ -223,7 +239,33 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: COLORS.gold,
+  },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 2,
+    gap: 8,
+  },
+  offlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+  },
+  offlineIcon: {
+    margin: 0,
+    padding: 0,
+    width: 16,
+    height: 16,
+  },
+  offlineText: {
+    fontSize: 11,
+    color: COLORS.gold,
+    fontWeight: '500',
   },
   headerActions: {
     flexDirection: 'row',

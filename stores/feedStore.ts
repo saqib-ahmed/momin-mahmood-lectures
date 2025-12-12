@@ -13,13 +13,16 @@ interface FeedState {
   isRefreshing: boolean;
   lastRefresh: number | null;
   error: string | null;
+  isOffline: boolean;
+  isHydrated: boolean;
 
   // Actions
-  refreshFeeds: () => Promise<void>;
+  refreshFeeds: (options?: { silent?: boolean }) => Promise<void>;
   getShowById: (id: string) => Show | undefined;
   getEpisodeById: (id: string) => Episode | undefined;
   getEpisodesByShowId: (showId: string) => Episode[];
   setError: (error: string | null) => void;
+  setHydrated: () => void;
 }
 
 export const useFeedStore = create<FeedState>()(
@@ -32,12 +35,23 @@ export const useFeedStore = create<FeedState>()(
       isRefreshing: false,
       lastRefresh: null,
       error: null,
+      isOffline: false,
+      isHydrated: false,
 
-      refreshFeeds: async () => {
-        const { isLoading } = get();
-        if (isLoading) return;
+      refreshFeeds: async (options?: { silent?: boolean }) => {
+        const { isLoading, isRefreshing, shows } = get();
+        if (isLoading || isRefreshing) return;
 
-        set({ isLoading: true, isRefreshing: true, error: null });
+        const silent = options?.silent ?? false;
+        const hasCachedData = shows.length > 0;
+
+        // Only show loading state if we have no cached data and not silent
+        if (!hasCachedData && !silent) {
+          set({ isLoading: true, error: null, isOffline: false });
+        } else {
+          // Background refresh - just set refreshing indicator
+          set({ isRefreshing: true, isOffline: false });
+        }
 
         try {
           // Get all feed configs (default + remote)
@@ -45,7 +59,7 @@ export const useFeedStore = create<FeedState>()(
           set({ feedConfigs });
 
           // Parse all RSS feeds
-          const { shows, episodes } = await parseAllFeeds(feedConfigs);
+          const { shows: newShows, episodes } = await parseAllFeeds(feedConfigs);
 
           // Sort episodes by publish date (newest first)
           const sortedEpisodes = episodes.sort(
@@ -53,19 +67,40 @@ export const useFeedStore = create<FeedState>()(
           );
 
           set({
-            shows,
+            shows: newShows,
             episodes: sortedEpisodes,
             lastRefresh: Date.now(),
             isLoading: false,
             isRefreshing: false,
+            error: null,
+            isOffline: false,
           });
         } catch (error) {
           console.error('Error refreshing feeds:', error);
-          set({
-            error: error instanceof Error ? error.message : 'Failed to refresh feeds',
-            isLoading: false,
-            isRefreshing: false,
-          });
+          const errorMessage = error instanceof Error ? error.message : 'Failed to refresh feeds';
+          const isNetworkError = errorMessage.includes('Network') ||
+                                 errorMessage.includes('fetch') ||
+                                 errorMessage.includes('internet') ||
+                                 errorMessage.includes('offline');
+
+          // If we have cached data, just mark as offline and don't show error
+          if (hasCachedData) {
+            set({
+              isLoading: false,
+              isRefreshing: false,
+              isOffline: isNetworkError,
+              // Don't set error if we have cached data - fail silently
+              error: null,
+            });
+          } else {
+            // No cached data - show the error
+            set({
+              error: isNetworkError ? 'No internet connection' : errorMessage,
+              isLoading: false,
+              isRefreshing: false,
+              isOffline: isNetworkError,
+            });
+          }
         }
       },
 
@@ -84,6 +119,10 @@ export const useFeedStore = create<FeedState>()(
       setError: (error: string | null) => {
         set({ error });
       },
+
+      setHydrated: () => {
+        set({ isHydrated: true });
+      },
     }),
     {
       name: 'feed-storage',
@@ -93,8 +132,9 @@ export const useFeedStore = create<FeedState>()(
         episodes: state.episodes,
         feedConfigs: state.feedConfigs,
         lastRefresh: state.lastRefresh,
+        // Don't persist: isLoading, isRefreshing, error, isOffline, isHydrated
       }),
-      // Hydrate dates properly
+      // Hydrate dates properly and mark as hydrated
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.episodes = state.episodes.map((ep) => ({
@@ -107,6 +147,10 @@ export const useFeedStore = create<FeedState>()(
               ? new Date(show.lastBuildDate)
               : undefined,
           }));
+          // Mark as hydrated so UI knows cached data is ready
+          state.isHydrated = true;
+          state.isOffline = false;
+          state.error = null;
         }
       },
     }

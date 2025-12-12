@@ -10,6 +10,8 @@ export function useRSSFeed() {
     isRefreshing,
     lastRefresh,
     error,
+    isOffline,
+    isHydrated,
     refreshFeeds,
     getShowById,
     getEpisodeById,
@@ -17,19 +19,24 @@ export function useRSSFeed() {
     setError,
   } = useFeedStore();
 
-  // Refresh feeds on mount if stale
+  // Refresh feeds on mount if stale (silently if we have cached data)
   useEffect(() => {
+    // Wait for hydration to complete before deciding to refresh
+    if (!isHydrated) return;
+
     const shouldRefresh =
       !lastRefresh || Date.now() - lastRefresh > REFRESH_INTERVAL_MS;
 
-    if (shouldRefresh && !isLoading) {
-      refreshFeeds();
+    if (shouldRefresh && !isLoading && !isRefreshing) {
+      // Use silent refresh if we have cached data
+      const hasCachedData = shows.length > 0;
+      refreshFeeds({ silent: hasCachedData });
     }
-  }, []);
+  }, [isHydrated]);
 
-  // Pull to refresh handler
+  // Pull to refresh handler (not silent - user initiated)
   const onRefresh = useCallback(async () => {
-    await refreshFeeds();
+    await refreshFeeds({ silent: false });
   }, [refreshFeeds]);
 
   // Get recent episodes (across all shows)
@@ -61,6 +68,8 @@ export function useRSSFeed() {
     isRefreshing,
     lastRefresh,
     error,
+    isOffline,
+    isHydrated,
 
     // Actions
     refreshFeeds,

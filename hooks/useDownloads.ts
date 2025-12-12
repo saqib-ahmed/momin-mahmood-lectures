@@ -68,10 +68,6 @@ export function useDownloads() {
         // Clean up throttle tracking
         delete lastProgressUpdateRef.current[episode.id];
 
-        // Debug logging for download completion
-        console.log('[Download] Completed:', episode.id);
-        console.log('[Download] Local path saved:', localPath);
-
         // Add to downloads store
         addDownload(episode, localPath);
         removeDownloadProgress(episode.id);

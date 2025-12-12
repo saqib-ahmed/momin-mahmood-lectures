@@ -138,12 +138,6 @@ export function useAudioPlayer() {
         const localPath = getLocalPath(episode.id);
         const uri = localPath || episode.audioUrl;
 
-        // Debug logging for local playback
-        console.log('[Audio] Playing episode:', episode.id);
-        console.log('[Audio] Local path:', localPath);
-        console.log('[Audio] Using URI:', uri);
-        console.log('[Audio] Is downloaded:', isDownloaded(episode.id));
-
         // Get saved position unless starting from beginning
         const initialPosition = startFromBeginning
           ? 0
@@ -157,7 +151,7 @@ export function useAudioPlayer() {
         setIsLoading(false);
       }
     },
-    [getLocalPath, isDownloaded, getSavedPosition, playbackSpeed, setCurrentEpisode, setIsLoading]
+    [getLocalPath, getSavedPosition, playbackSpeed, setCurrentEpisode, setIsLoading]
   );
 
   // Toggle play/pause

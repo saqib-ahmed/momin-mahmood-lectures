@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { PaperProvider, MD3DarkTheme } from "react-native-paper";
@@ -6,7 +5,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Platform, StyleSheet, View, StatusBar as RNStatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { COLORS } from "../constants";
-import { useFeedStore } from "../stores/feedStore";
 import MiniPlayer from "../components/MiniPlayer";
 
 // Islamic-inspired dark theme
@@ -27,14 +25,7 @@ const theme = {
 };
 
 export default function RootLayout() {
-  const { refreshFeeds, isLoading, shows } = useFeedStore();
-
-  // Load feeds on app start
-  useEffect(() => {
-    if (shows.length === 0 && !isLoading) {
-      refreshFeeds();
-    }
-  }, []);
+  // Feed refresh is handled by useRSSFeed hook in index.tsx with offline-first logic
 
   return (
     <GestureHandlerRootView style={styles.container}>
