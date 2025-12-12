@@ -61,7 +61,7 @@ export default function PlaylistDetailScreen() {
   const insets = useSafeAreaInsets();
   const { getPlaylistById, removeFromPlaylist } = usePlaylistStore();
   const { getEpisodeById } = useFeedStore();
-  const { playEpisode, currentEpisode, isPlaying } = useAudioPlayer();
+  const { playEpisode, currentEpisode, isPlaying, togglePlayPause } = useAudioPlayer();
   const { addToQueue } = usePlayerStore();
   const playerHasEpisode = usePlayerStore((s) => s.currentEpisode);
 
@@ -129,14 +129,24 @@ export default function PlaylistDetailScreen() {
       <FlatList
         data={episodes}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <PlaylistEpisodeCard
-            episode={item}
-            isPlaying={currentEpisode?.id === item.id && isPlaying}
-            onPlay={() => playEpisode(item)}
-            onRemove={() => removeFromPlaylist(playlist.id, item.id)}
-          />
-        )}
+        renderItem={({ item }) => {
+          const isCurrentEpisode = currentEpisode?.id === item.id;
+          const isEpisodePlaying = isCurrentEpisode && isPlaying;
+          return (
+            <PlaylistEpisodeCard
+              episode={item}
+              isPlaying={isEpisodePlaying}
+              onPlay={() => {
+                if (isCurrentEpisode) {
+                  togglePlayPause();
+                } else {
+                  playEpisode(item);
+                }
+              }}
+              onRemove={() => removeFromPlaylist(playlist.id, item.id)}
+            />
+          );
+        }}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={[
           styles.listContent,

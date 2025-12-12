@@ -22,7 +22,7 @@ export default function EpisodeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { getEpisodeById, getShowById } = useRSSFeed();
-  const { playEpisode, currentEpisode, isPlaying } = useAudioPlayer();
+  const { playEpisode, currentEpisode, isPlaying, togglePlayPause } = useAudioPlayer();
   const {
     isDownloaded,
     isDownloading,
@@ -107,7 +107,13 @@ export default function EpisodeDetailScreen() {
           <Button
             mode="contained"
             icon={isCurrentEpisode && isPlaying ? 'pause' : 'play'}
-            onPress={() => playEpisode(episode)}
+            onPress={() => {
+              if (isCurrentEpisode) {
+                togglePlayPause();
+              } else {
+                playEpisode(episode);
+              }
+            }}
             style={styles.playButton}
             contentStyle={styles.playButtonContent}
           >

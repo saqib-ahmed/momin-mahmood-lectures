@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Text, IconButton, ProgressBar } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { COLORS } from '../constants';
 
 export default function MiniPlayer() {
   const router = useRouter();
+  const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const {
     currentEpisode,
@@ -18,7 +19,8 @@ export default function MiniPlayer() {
     togglePlayPause,
   } = useAudioPlayer();
 
-  if (!currentEpisode) {
+  // Hide mini player if no episode or if already on the player screen
+  if (!currentEpisode || pathname === '/player') {
     return null;
   }
 
@@ -27,7 +29,7 @@ export default function MiniPlayer() {
   return (
     <TouchableOpacity
       style={[styles.container, { paddingBottom: insets.bottom || 8 }]}
-      onPress={() => router.push('/player')}
+      onPress={() => router.navigate('/player')}
       activeOpacity={0.9}
     >
       <ProgressBar

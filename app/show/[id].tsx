@@ -79,7 +79,7 @@ export default function ShowDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { getShowById, getEpisodesByShowId } = useRSSFeed();
-  const { playEpisode, currentEpisode, isPlaying } = useAudioPlayer();
+  const { playEpisode, currentEpisode, isPlaying, togglePlayPause } = useAudioPlayer();
   const { isDownloaded } = useDownloads();
   const playerCurrentEpisode = usePlayerStore((s) => s.currentEpisode);
 
@@ -181,15 +181,25 @@ export default function ShowDetailScreen() {
       <FlatList
         data={filteredEpisodes}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <EpisodeCard
-            episode={item}
-            isPlaying={currentEpisode?.id === item.id && isPlaying}
-            isDownloaded={isDownloaded(item.id)}
-            onPlay={() => playEpisode(item)}
-            onPress={() => router.push(`/episode/${item.id}`)}
-          />
-        )}
+        renderItem={({ item }) => {
+          const isCurrentEpisode = currentEpisode?.id === item.id;
+          const isEpisodePlaying = isCurrentEpisode && isPlaying;
+          return (
+            <EpisodeCard
+              episode={item}
+              isPlaying={isEpisodePlaying}
+              isDownloaded={isDownloaded(item.id)}
+              onPlay={() => {
+                if (isCurrentEpisode) {
+                  togglePlayPause();
+                } else {
+                  playEpisode(item);
+                }
+              }}
+              onPress={() => router.push(`/episode/${item.id}`)}
+            />
+          );
+        }}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={[
           styles.listContent,

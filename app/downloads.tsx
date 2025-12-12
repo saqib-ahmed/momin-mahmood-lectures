@@ -64,7 +64,7 @@ export default function DownloadsScreen() {
   const insets = useSafeAreaInsets();
   const { downloadedEpisodes, totalDownloadSize, deleteDownload, deleteAllDownloads } =
     useDownloads();
-  const { playEpisode, currentEpisode, isPlaying } = useAudioPlayer();
+  const { playEpisode, currentEpisode, isPlaying, togglePlayPause } = useAudioPlayer();
   const playerHasEpisode = usePlayerStore((s) => s.currentEpisode);
 
   const bottomPadding = playerHasEpisode ? 80 : 0;
@@ -130,14 +130,24 @@ export default function DownloadsScreen() {
       <FlatList
         data={downloadedEpisodes}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <DownloadedEpisodeCard
-            episode={item}
-            isPlaying={currentEpisode?.id === item.id && isPlaying}
-            onPlay={() => playEpisode(item)}
-            onDelete={() => handleDeleteEpisode(item.id)}
-          />
-        )}
+        renderItem={({ item }) => {
+          const isCurrentEpisode = currentEpisode?.id === item.id;
+          const isEpisodePlaying = isCurrentEpisode && isPlaying;
+          return (
+            <DownloadedEpisodeCard
+              episode={item}
+              isPlaying={isEpisodePlaying}
+              onPlay={() => {
+                if (isCurrentEpisode) {
+                  togglePlayPause();
+                } else {
+                  playEpisode(item);
+                }
+              }}
+              onDelete={() => handleDeleteEpisode(item.id)}
+            />
+          );
+        }}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={[
           styles.listContent,
