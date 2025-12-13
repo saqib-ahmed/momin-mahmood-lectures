@@ -1,9 +1,10 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { AVPlaybackStatus } from 'expo-av';
+import { useAudioPro, AudioProState } from 'react-native-audio-pro';
 import { audioService } from '../services/audioService';
 import { usePlayerStore } from '../stores/playerStore';
 import { useDownloadStore } from '../stores/downloadStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useFeedStore } from '../stores/feedStore';
 import { Episode } from '../types';
 
 export function useAudioPlayer() {
@@ -16,6 +17,8 @@ export function useAudioPlayer() {
     duration,
     playbackSpeed,
     sleepTimerEndTime,
+    queue,
+    playHistory,
     setCurrentEpisode,
     setIsPlaying,
     setIsLoading,
@@ -26,57 +29,47 @@ export function useAudioPlayer() {
     savePosition,
     getSavedPosition,
     playNext,
+    playPrevious,
     clearSleepTimer,
+    addToQueue,
+    setQueue,
   } = usePlayerStore();
 
   const { getLocalPath, isDownloaded } = useDownloadStore();
-  const { skipForwardSeconds, skipBackwardSeconds, autoPlayNext } =
-    useSettingsStore();
+  const { skipForwardSeconds, skipBackwardSeconds } = useSettingsStore();
+  const { getEpisodesByShowId } = useFeedStore();
+
+  // Use the react-native-audio-pro hook for reactive state
+  // This will update automatically when audio state changes
+  const audioState = useAudioPro();
+
+  // Derive playback state directly from audioState for real-time UI
+  const isPlayingNow = audioState.state === AudioProState.PLAYING;
+  const isLoadingNow = audioState.state === AudioProState.LOADING;
+  const isBufferingNow = audioState.state === AudioProState.LOADING;
+  const positionNow = audioState.position ?? position;
+  const durationNow = audioState.duration ?? duration;
+
+  // Sync play state to store (for other components like MiniPlayer)
+  useEffect(() => {
+    if (isPlayingNow !== isPlaying) {
+      setIsPlaying(isPlayingNow);
+    }
+    if (isLoadingNow !== isLoading) {
+      setIsLoading(isLoadingNow);
+      setIsBuffering(isLoadingNow);
+    }
+  }, [isPlayingNow, isLoadingNow, isPlaying, isLoading, setIsPlaying, setIsLoading, setIsBuffering]);
+
+  // Sync duration to store (only when it changes significantly)
+  useEffect(() => {
+    if (durationNow > 0 && Math.abs(durationNow - duration) > 1000) {
+      setDuration(durationNow);
+    }
+  }, [durationNow, duration, setDuration]);
 
   const sleepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const positionSaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Handle playback status updates
-  const handleStatusUpdate = useCallback(
-    (status: AVPlaybackStatus) => {
-      if (!status.isLoaded) {
-        setIsLoading(true);
-        setIsBuffering(false);
-        return;
-      }
-
-      setIsLoading(false);
-      setIsPlaying(status.isPlaying);
-      setIsBuffering(status.isBuffering);
-      setPosition(status.positionMillis);
-
-      if (status.durationMillis) {
-        setDuration(status.durationMillis);
-      }
-
-      // Handle playback finished
-      if (status.didJustFinish && autoPlayNext) {
-        const nextEpisode = playNext();
-        if (nextEpisode) {
-          playEpisode(nextEpisode);
-        }
-      }
-    },
-    [
-      setIsLoading,
-      setIsPlaying,
-      setIsBuffering,
-      setPosition,
-      setDuration,
-      autoPlayNext,
-      playNext,
-    ]
-  );
-
-  // Set up status callback on mount
-  useEffect(() => {
-    audioService.setStatusCallback(handleStatusUpdate);
-  }, [handleStatusUpdate]);
 
   // Sleep timer effect
   useEffect(() => {
@@ -128,7 +121,7 @@ export function useAudioPlayer() {
     };
   }, [currentEpisode, isPlaying, savePosition]);
 
-  // Play an episode
+  // Play an episode (with auto-queue of subsequent episodes from same show)
   const playEpisode = useCallback(
     async (episode: Episode, startFromBeginning = false) => {
       setIsLoading(true);
@@ -144,43 +137,56 @@ export function useAudioPlayer() {
           : getSavedPosition(episode.id);
 
         setCurrentEpisode(episode);
-        await audioService.loadAudio(uri, initialPosition, playbackSpeed);
-        await audioService.play();
+
+        // Auto-populate queue with remaining episodes from the same show
+        const showEpisodes = getEpisodesByShowId(episode.showId);
+        const currentIndex = showEpisodes.findIndex((ep) => ep.id === episode.id);
+        if (currentIndex >= 0 && currentIndex < showEpisodes.length - 1) {
+          // Add episodes after this one to the queue
+          const remainingEpisodes = showEpisodes.slice(currentIndex + 1);
+          setQueue(remainingEpisodes);
+        }
+
+        await audioService.play(episode, uri, {
+          startTimeMs: initialPosition,
+          autoPlay: true,
+          playbackSpeed,
+        });
       } catch (error) {
         console.error('Error playing episode:', error);
         setIsLoading(false);
       }
     },
-    [getLocalPath, getSavedPosition, playbackSpeed, setCurrentEpisode, setIsLoading]
+    [getLocalPath, getSavedPosition, getEpisodesByShowId, playbackSpeed, setCurrentEpisode, setIsLoading, setQueue]
   );
 
   // Toggle play/pause
   const togglePlayPause = useCallback(async () => {
     if (!currentEpisode) return;
 
-    if (isPlaying) {
+    if (isPlayingNow) {
       await audioService.pause();
       // Save position when pausing
-      savePosition(currentEpisode.id, position);
+      savePosition(currentEpisode.id, positionNow);
     } else {
-      // If no audio loaded, load it first
-      const status = await audioService.getStatus();
-      if (!status || !status.isLoaded) {
-        await playEpisode(currentEpisode);
+      // Check if we have a track loaded
+      if (audioService.hasTrack()) {
+        await audioService.resume();
       } else {
-        await audioService.play();
+        // No track loaded, load and play
+        await playEpisode(currentEpisode);
       }
     }
-  }, [currentEpisode, isPlaying, position, savePosition, playEpisode]);
+  }, [currentEpisode, isPlayingNow, positionNow, savePosition, playEpisode]);
 
   // Seek forward
   const seekForward = useCallback(async () => {
-    await audioService.seekForward(skipForwardSeconds);
+    await audioService.seekForward(skipForwardSeconds * 1000);
   }, [skipForwardSeconds]);
 
   // Seek backward
   const seekBackward = useCallback(async () => {
-    await audioService.seekBackward(skipBackwardSeconds);
+    await audioService.seekBackward(skipBackwardSeconds * 1000);
   }, [skipBackwardSeconds]);
 
   // Seek to position
@@ -200,22 +206,89 @@ export function useAudioPlayer() {
   // Stop playback
   const stop = useCallback(async () => {
     if (currentEpisode) {
-      savePosition(currentEpisode.id, position);
+      savePosition(currentEpisode.id, positionNow);
     }
     await audioService.stop();
-    await audioService.unload();
-  }, [currentEpisode, position, savePosition]);
+  }, [currentEpisode, positionNow, savePosition]);
+
+  // Play next track from queue
+  const skipToNext = useCallback(async () => {
+    if (currentEpisode && positionNow > 0) {
+      savePosition(currentEpisode.id, positionNow);
+    }
+
+    const nextEpisode = playNext();
+    if (nextEpisode) {
+      // Get local path for the next episode
+      const localPath = getLocalPath(nextEpisode.id);
+      const uri = localPath || nextEpisode.audioUrl;
+      const initialPosition = getSavedPosition(nextEpisode.id);
+
+      await audioService.play(nextEpisode, uri, {
+        startTimeMs: initialPosition,
+        autoPlay: true,
+        playbackSpeed,
+      });
+    }
+  }, [currentEpisode, positionNow, savePosition, playNext, getLocalPath, getSavedPosition, playbackSpeed]);
+
+  // Play previous or restart current track
+  const skipToPrevious = useCallback(async () => {
+    // If more than 3 seconds in, restart current track
+    if (positionNow > 3000) {
+      await audioService.seekTo(0);
+      return;
+    }
+
+    // Otherwise, go to previous if available
+    const prevEpisode = playPrevious();
+    if (prevEpisode) {
+      // Get local path for the previous episode
+      const localPath = getLocalPath(prevEpisode.id);
+      const uri = localPath || prevEpisode.audioUrl;
+      const initialPosition = getSavedPosition(prevEpisode.id);
+
+      await audioService.play(prevEpisode, uri, {
+        startTimeMs: initialPosition,
+        autoPlay: true,
+        playbackSpeed,
+      });
+    } else {
+      // No previous, just restart
+      await audioService.seekTo(0);
+    }
+  }, [positionNow, playPrevious, getLocalPath, getSavedPosition, playbackSpeed]);
+
+  // Add current show's episodes to queue
+  const addShowToQueue = useCallback(
+    (afterCurrentEpisode = true) => {
+      if (!currentEpisode) return;
+
+      const showEpisodes = getEpisodesByShowId(currentEpisode.showId);
+      const currentIndex = showEpisodes.findIndex(
+        (ep) => ep.id === currentEpisode.id
+      );
+
+      // Add episodes after the current one to the queue
+      if (afterCurrentEpisode && currentIndex >= 0) {
+        showEpisodes.slice(currentIndex + 1).forEach((ep) => addToQueue(ep));
+      }
+    },
+    [currentEpisode, getEpisodesByShowId, addToQueue]
+  );
 
   return {
-    // State
+    // State - use real-time values from audioState for smooth UI
     currentEpisode,
-    isPlaying,
-    isLoading,
-    isBuffering,
-    position,
-    duration,
+    isPlaying: isPlayingNow,
+    isLoading: isLoadingNow,
+    isBuffering: isBufferingNow,
+    position: positionNow,
+    duration: durationNow,
     playbackSpeed,
     sleepTimerEndTime,
+    queue,
+    playHistory,
 
     // Actions
     playEpisode,
@@ -225,8 +298,13 @@ export function useAudioPlayer() {
     seekTo,
     changePlaybackSpeed,
     stop,
+    skipToNext,
+    skipToPrevious,
+    addShowToQueue,
 
     // Helpers
     isEpisodeDownloaded: isDownloaded,
+    hasQueue: queue.length > 0,
+    hasHistory: playHistory.length > 0,
   };
 }

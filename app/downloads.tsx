@@ -4,9 +4,9 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Text, IconButton, Button } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDownloads } from '../hooks/useDownloads';
@@ -32,7 +32,12 @@ function DownloadedEpisodeCard({
 
   return (
     <View style={styles.episodeCard}>
-      <Image source={{ uri: episode.imageUrl }} style={styles.artwork} />
+      <Image
+        source={{ uri: episode.imageUrl }}
+        style={styles.artwork}
+        contentFit="cover"
+        cachePolicy="disk"
+      />
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>
           {episode.title}

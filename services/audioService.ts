@@ -1,131 +1,205 @@
-import { Audio, AVPlaybackStatus, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
+/**
+ * Audio Service - Wrapper around react-native-audio-pro
+ * Provides a clean API for playing audio with all podcast features
+ */
+import {
+  AudioPro,
+  AudioProState,
+  AudioProTrack,
+} from 'react-native-audio-pro';
 import { Episode } from '../types';
 
-type PlaybackStatusCallback = (status: AVPlaybackStatus) => void;
+// Define PlayOptions locally since it's not exported from the package
+type PlayOptions = {
+  autoPlay?: boolean;
+  headers?: {
+    audio?: Record<string, string>;
+    artwork?: Record<string, string>;
+  };
+  startTimeMs?: number;
+};
+
+/**
+ * Convert our Episode type to AudioProTrack
+ */
+function episodeToTrack(episode: Episode): AudioProTrack {
+  return {
+    id: episode.id,
+    url: episode.audioUrl,
+    title: episode.title,
+    artwork: episode.imageUrl,
+    artist: episode.showId, // Could be show title if available
+    album: episode.season ? `Season ${episode.season}` : undefined,
+  };
+}
 
 class AudioService {
-  private sound: Audio.Sound | null = null;
-  private statusCallback: PlaybackStatusCallback | null = null;
-  private isInitialized = false;
-
-  async initialize(): Promise<void> {
-    if (this.isInitialized) return;
-
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      staysActiveInBackground: true,
-      interruptionModeIOS: InterruptionModeIOS.DuckOthers,
-      playsInSilentModeIOS: true,
-      shouldDuckAndroid: true,
-      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-      playThroughEarpieceAndroid: false,
-    });
-
-    this.isInitialized = true;
-  }
-
-  setStatusCallback(callback: PlaybackStatusCallback): void {
-    this.statusCallback = callback;
-  }
-
-  private handlePlaybackStatusUpdate = (status: AVPlaybackStatus): void => {
-    if (this.statusCallback) {
-      this.statusCallback(status);
+  /**
+   * Load and play an episode
+   */
+  async play(
+    episode: Episode,
+    uri: string, // Can be local file path or remote URL
+    options?: {
+      startTimeMs?: number;
+      autoPlay?: boolean;
+      playbackSpeed?: number;
     }
-  };
-
-  async loadAudio(
-    uri: string,
-    initialPosition: number = 0,
-    playbackSpeed: number = 1.0
   ): Promise<void> {
-    await this.initialize();
+    const track: AudioProTrack = {
+      id: episode.id,
+      url: uri,
+      title: episode.title,
+      artwork: episode.imageUrl,
+      artist: episode.showId,
+      album: episode.season ? `Season ${episode.season}` : undefined,
+    };
 
-    // Unload any existing audio
-    await this.unload();
+    const playOptions: PlayOptions = {
+      autoPlay: options?.autoPlay ?? true,
+      startTimeMs: options?.startTimeMs ?? 0,
+    };
 
-    const { sound } = await Audio.Sound.createAsync(
-      { uri },
-      {
-        shouldPlay: false,
-        positionMillis: initialPosition,
-        rate: playbackSpeed,
-        shouldCorrectPitch: true,
-        progressUpdateIntervalMillis: 500,
-      },
-      this.handlePlaybackStatusUpdate
-    );
+    await AudioPro.play(track, playOptions);
 
-    this.sound = sound;
+    // Set playback speed if specified
+    if (options?.playbackSpeed && options.playbackSpeed !== 1.0) {
+      await AudioPro.setPlaybackSpeed(options.playbackSpeed);
+    }
   }
 
-  async play(): Promise<void> {
-    if (!this.sound) return;
-    await this.sound.playAsync();
-  }
-
+  /**
+   * Pause playback
+   */
   async pause(): Promise<void> {
-    if (!this.sound) return;
-    await this.sound.pauseAsync();
+    await AudioPro.pause();
   }
 
+  /**
+   * Resume playback
+   */
+  async resume(): Promise<void> {
+    await AudioPro.resume();
+  }
+
+  /**
+   * Stop playback and reset position
+   */
   async stop(): Promise<void> {
-    if (!this.sound) return;
-    await this.sound.stopAsync();
+    await AudioPro.stop();
   }
 
-  async seekTo(positionMillis: number): Promise<void> {
-    if (!this.sound) return;
-    await this.sound.setPositionAsync(positionMillis);
+  /**
+   * Clear the player (reset to IDLE state)
+   */
+  async clear(): Promise<void> {
+    await AudioPro.clear();
   }
 
-  async seekForward(seconds: number): Promise<void> {
-    if (!this.sound) return;
-    const status = await this.sound.getStatusAsync();
-    if (status.isLoaded) {
-      const newPosition = Math.min(
-        status.positionMillis + seconds * 1000,
-        status.durationMillis || status.positionMillis
-      );
-      await this.sound.setPositionAsync(newPosition);
-    }
+  /**
+   * Seek to a specific position
+   */
+  async seekTo(positionMs: number): Promise<void> {
+    await AudioPro.seekTo(positionMs);
   }
 
-  async seekBackward(seconds: number): Promise<void> {
-    if (!this.sound) return;
-    const status = await this.sound.getStatusAsync();
-    if (status.isLoaded) {
-      const newPosition = Math.max(status.positionMillis - seconds * 1000, 0);
-      await this.sound.setPositionAsync(newPosition);
-    }
+  /**
+   * Seek forward by specified amount (default 15 seconds)
+   */
+  async seekForward(amountMs: number = 15000): Promise<void> {
+    await AudioPro.seekForward(amountMs);
   }
 
-  async setPlaybackSpeed(rate: number): Promise<void> {
-    if (!this.sound) return;
-    await this.sound.setRateAsync(rate, true);
+  /**
+   * Seek backward by specified amount (default 15 seconds)
+   */
+  async seekBackward(amountMs: number = 15000): Promise<void> {
+    await AudioPro.seekBack(amountMs);
   }
 
+  /**
+   * Set playback speed (0.25 to 2.0)
+   */
+  async setPlaybackSpeed(speed: number): Promise<void> {
+    const clampedSpeed = Math.max(0.25, Math.min(2.0, speed));
+    await AudioPro.setPlaybackSpeed(clampedSpeed);
+  }
+
+  /**
+   * Set volume (0.0 to 1.0)
+   */
   async setVolume(volume: number): Promise<void> {
-    if (!this.sound) return;
-    await this.sound.setVolumeAsync(Math.max(0, Math.min(1, volume)));
+    const clampedVolume = Math.max(0, Math.min(1, volume));
+    await AudioPro.setVolume(clampedVolume);
   }
 
-  async getStatus(): Promise<AVPlaybackStatus | null> {
-    if (!this.sound) return null;
-    return await this.sound.getStatusAsync();
+  /**
+   * Get current playback state
+   */
+  getState(): AudioProState {
+    return AudioPro.getState();
   }
 
-  async unload(): Promise<void> {
-    if (this.sound) {
-      await this.sound.unloadAsync();
-      this.sound = null;
-    }
+  /**
+   * Get current position and duration
+   */
+  getTimings(): { position: number; duration: number } {
+    return AudioPro.getTimings();
   }
 
-  isLoaded(): boolean {
-    return this.sound !== null;
+  /**
+   * Get the currently playing track
+   */
+  getPlayingTrack(): AudioProTrack | null {
+    return AudioPro.getPlayingTrack();
+  }
+
+  /**
+   * Get current playback speed
+   */
+  getPlaybackSpeed(): number {
+    return AudioPro.getPlaybackSpeed();
+  }
+
+  /**
+   * Get current volume
+   */
+  getVolume(): number {
+    return AudioPro.getVolume();
+  }
+
+  /**
+   * Get last error if any
+   */
+  getError(): { error: string; errorCode?: number } | null {
+    return AudioPro.getError();
+  }
+
+  /**
+   * Check if player is currently playing
+   */
+  isPlaying(): boolean {
+    return AudioPro.getState() === AudioProState.PLAYING;
+  }
+
+  /**
+   * Check if player is loading
+   */
+  isLoading(): boolean {
+    return AudioPro.getState() === AudioProState.LOADING;
+  }
+
+  /**
+   * Check if a track is loaded
+   */
+  hasTrack(): boolean {
+    const state = AudioPro.getState();
+    return state !== AudioProState.IDLE;
   }
 }
 
 // Singleton instance
 export const audioService = new AudioService();
+
+// Re-export types for convenience
+export { AudioProState, AudioProTrack };

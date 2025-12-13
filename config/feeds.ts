@@ -1,14 +1,7 @@
 import { FeedConfig, RemoteFeedsResponse } from '../types';
 
 // Hardcoded default feeds - always available
-export const DEFAULT_FEEDS: FeedConfig[] = [
-  {
-    id: 'surah-anam',
-    url: 'https://anchor.fm/s/10c9588e8/podcast/rss',
-    name: 'سورة الانعام | درسِ قرآن',
-  },
-  // Add more default feeds here as needed
-];
+export const DEFAULT_FEEDS: FeedConfig[] = [];
 
 // Remote feeds URL - set to null to disable remote feed loading
 // Host this JSON file on GitHub Pages, Vercel, or any static hosting

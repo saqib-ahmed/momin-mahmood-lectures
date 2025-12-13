@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   ImageBackground,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Text, IconButton, Button } from 'react-native-paper';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,7 +19,7 @@ import { Episode } from '../../types';
 import { formatDuration } from '../../services/rssParser';
 import { GoldenMandala } from '../../components/IslamicPattern';
 
-function PlaylistEpisodeCard({
+const PlaylistEpisodeCard = memo(function PlaylistEpisodeCard({
   episode,
   isPlaying,
   onPlay,
@@ -32,7 +32,12 @@ function PlaylistEpisodeCard({
 }) {
   return (
     <View style={styles.episodeCard}>
-      <Image source={{ uri: episode.imageUrl }} style={styles.artwork} />
+      <Image
+        source={{ uri: episode.imageUrl }}
+        style={styles.artwork}
+        contentFit="cover"
+        cachePolicy="disk"
+      />
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>
           {episode.title}
@@ -53,7 +58,7 @@ function PlaylistEpisodeCard({
       />
     </View>
   );
-}
+});
 
 export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -61,8 +66,11 @@ export default function PlaylistDetailScreen() {
   const insets = useSafeAreaInsets();
   const { getPlaylistById, removeFromPlaylist } = usePlaylistStore();
   const { getEpisodeById } = useFeedStore();
-  const { playEpisode, currentEpisode, isPlaying, togglePlayPause } = useAudioPlayer();
+  const { playEpisode, togglePlayPause } = useAudioPlayer();
   const { addToQueue } = usePlayerStore();
+  // Use selective subscriptions to avoid re-renders from position updates
+  const currentEpisodeId = usePlayerStore((s) => s.currentEpisode?.id);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
   const playerHasEpisode = usePlayerStore((s) => s.currentEpisode);
 
   const playlist = getPlaylistById(id || '');
@@ -129,8 +137,9 @@ export default function PlaylistDetailScreen() {
       <FlatList
         data={episodes}
         keyExtractor={(item) => item.id}
+        extraData={currentEpisodeId}
         renderItem={({ item }) => {
-          const isCurrentEpisode = currentEpisode?.id === item.id;
+          const isCurrentEpisode = currentEpisodeId === item.id;
           const isEpisodePlaying = isCurrentEpisode && isPlaying;
           return (
             <PlaylistEpisodeCard

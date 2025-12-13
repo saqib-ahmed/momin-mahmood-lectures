@@ -32,7 +32,6 @@ export default function RootLayout() {
       <SafeAreaProvider
         style={{
           flex: 1,
-          paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 0,
         }}
       >
         <PaperProvider theme={theme}>

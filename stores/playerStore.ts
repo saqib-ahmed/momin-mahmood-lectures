@@ -13,8 +13,11 @@ interface PlayerState {
   duration: number; // milliseconds
   playbackSpeed: number;
 
-  // Queue
+  // Queue (upcoming episodes)
   queue: QueueItem[];
+
+  // History (previously played episodes for "Previous" button)
+  playHistory: Episode[];
 
   // Saved positions for resuming
   savedPositions: Record<string, PlaybackPosition>;
@@ -33,9 +36,11 @@ interface PlayerState {
 
   // Queue actions
   addToQueue: (episode: Episode) => void;
+  setQueue: (episodes: Episode[]) => void;
   removeFromQueue: (episodeId: string) => void;
   clearQueue: () => void;
   playNext: () => Episode | null;
+  playPrevious: () => Episode | null;
   reorderQueue: (fromIndex: number, toIndex: number) => void;
 
   // Position tracking
@@ -62,16 +67,22 @@ export const usePlayerStore = create<PlayerState>()(
       duration: 0,
       playbackSpeed: 1.0,
       queue: [],
+      playHistory: [],
       savedPositions: {},
       sleepTimerEndTime: null,
 
       setCurrentEpisode: (episode) => {
-        const { currentEpisode, position } = get();
+        const { currentEpisode, position, playHistory } = get();
         // Save position of current episode before switching
         if (currentEpisode && position > 0) {
           get().savePosition(currentEpisode.id, position);
         }
-        set({ currentEpisode: episode, position: 0, duration: 0 });
+        // Add current episode to history (for Previous button)
+        // Keep history limited to last 20 episodes
+        const newHistory = currentEpisode
+          ? [currentEpisode, ...playHistory.filter(e => e.id !== currentEpisode.id)].slice(0, 20)
+          : playHistory;
+        set({ currentEpisode: episode, position: 0, duration: 0, playHistory: newHistory });
       },
 
       setIsPlaying: (isPlaying) => set({ isPlaying }),
@@ -82,14 +93,26 @@ export const usePlayerStore = create<PlayerState>()(
       setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
 
       addToQueue: (episode) => {
-        const { queue } = get();
-        // Don't add duplicates
+        const { queue, currentEpisode } = get();
+        // Don't add duplicates or current episode
         if (queue.some((item) => item.episode.id === episode.id)) {
+          return;
+        }
+        if (currentEpisode?.id === episode.id) {
           return;
         }
         set({
           queue: [...queue, { episode, addedAt: new Date() }],
         });
+      },
+
+      setQueue: (episodes) => {
+        const { currentEpisode } = get();
+        // Filter out current episode and create queue items
+        const queueItems = episodes
+          .filter((ep) => ep.id !== currentEpisode?.id)
+          .map((episode) => ({ episode, addedAt: new Date() }));
+        set({ queue: queueItems });
       },
 
       removeFromQueue: (episodeId) => {
@@ -101,7 +124,7 @@ export const usePlayerStore = create<PlayerState>()(
       clearQueue: () => set({ queue: [] }),
 
       playNext: () => {
-        const { queue, currentEpisode, position } = get();
+        const { queue, currentEpisode, position, playHistory } = get();
         if (queue.length === 0) return null;
 
         // Save current position
@@ -109,14 +132,49 @@ export const usePlayerStore = create<PlayerState>()(
           get().savePosition(currentEpisode.id, position);
         }
 
+        // Add current episode to history so we can go back
+        const newHistory = currentEpisode
+          ? [currentEpisode, ...playHistory.filter(e => e.id !== currentEpisode.id)].slice(0, 20)
+          : playHistory;
+
         const nextItem = queue[0];
         set({
           currentEpisode: nextItem.episode,
           queue: queue.slice(1),
+          playHistory: newHistory,
           position: 0,
           duration: 0,
         });
         return nextItem.episode;
+      },
+
+      playPrevious: () => {
+        const { playHistory, currentEpisode, position, queue } = get();
+        if (playHistory.length === 0) return null;
+
+        // Save current position
+        if (currentEpisode && position > 0) {
+          get().savePosition(currentEpisode.id, position);
+        }
+
+        // Get previous episode from history
+        const prevEpisode = playHistory[0];
+        const newHistory = playHistory.slice(1);
+
+        // Add current episode to front of queue (so it plays next after prev)
+        const newQueue = currentEpisode
+          ? [{ episode: currentEpisode, addedAt: new Date() }, ...queue]
+          : queue;
+
+        set({
+          currentEpisode: prevEpisode,
+          playHistory: newHistory,
+          queue: newQueue,
+          position: 0,
+          duration: 0,
+        });
+
+        return prevEpisode;
       },
 
       reorderQueue: (fromIndex, toIndex) => {

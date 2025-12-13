@@ -5,11 +5,11 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
-  Image,
   ImageBackground,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Text, ActivityIndicator, IconButton } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRSSFeed } from '../hooks/useRSSFeed';
 import { usePlayerStore } from '../stores/playerStore';
@@ -26,7 +26,12 @@ function LectureSeriesCard({ show, onPress }: { show: Show; onPress: () => void 
       <View style={styles.cornerBottomLeft} />
       <View style={styles.cornerBottomRight} />
 
-      <Image source={{ uri: show.imageUrl }} style={styles.lectureImage} />
+      <Image
+        source={{ uri: show.imageUrl }}
+        style={styles.lectureImage}
+        contentFit="cover"
+        cachePolicy="disk"
+      />
       <View style={styles.lectureInfo}>
         <Text style={styles.lectureTitle} numberOfLines={2}>
           {show.title}
@@ -55,23 +60,24 @@ export default function HomeScreen() {
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
+      {/* Offline Banner */}
+      {isOffline && (
+        <View style={styles.offlineBanner}>
+          <IconButton
+            icon="wifi-off"
+            iconColor={COLORS.background}
+            size={16}
+            style={styles.offlineBannerIcon}
+          />
+          <Text style={styles.offlineBannerText}>
+            No internet connection - showing cached lectures
+          </Text>
+        </View>
+      )}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Lecture Series</Text>
-          <View style={styles.subtitleRow}>
-            <Text style={styles.headerSubtitle}>Islamic Knowledge & Guidance</Text>
-            {isOffline && (
-              <View style={styles.offlineBadge}>
-                <IconButton
-                  icon="wifi-off"
-                  iconColor={COLORS.gold}
-                  size={12}
-                  style={styles.offlineIcon}
-                />
-                <Text style={styles.offlineText}>Offline</Text>
-              </View>
-            )}
-          </View>
+          {/* <Text style={styles.headerSubtitle}>Islamic Knowledge & Guidance</Text> */}
         </View>
         <View style={styles.headerActions}>
           <IconButton
@@ -239,33 +245,30 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: COLORS.gold,
-  },
-  subtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginTop: 2,
-    gap: 8,
   },
-  offlineBadge: {
+  offlineBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.gold,
+    justifyContent: 'center',
+    backgroundColor: COLORS.gold,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 8,
   },
-  offlineIcon: {
+  offlineBannerIcon: {
     margin: 0,
     padding: 0,
-    width: 16,
-    height: 16,
+    width: 20,
+    height: 20,
   },
-  offlineText: {
-    fontSize: 11,
-    color: COLORS.gold,
-    fontWeight: '500',
+  offlineBannerText: {
+    fontSize: 13,
+    color: COLORS.background,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   headerActions: {
     flexDirection: 'row',

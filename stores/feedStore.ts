@@ -39,11 +39,11 @@ export const useFeedStore = create<FeedState>()(
       isHydrated: false,
 
       refreshFeeds: async (options?: { silent?: boolean }) => {
-        const { isLoading, isRefreshing, shows } = get();
+        const { isLoading, isRefreshing, shows: existingShows, episodes: existingEpisodes } = get();
         if (isLoading || isRefreshing) return;
 
         const silent = options?.silent ?? false;
-        const hasCachedData = shows.length > 0;
+        const hasCachedData = existingShows.length > 0;
 
         // Only show loading state if we have no cached data and not silent
         if (!hasCachedData && !silent) {
@@ -55,17 +55,38 @@ export const useFeedStore = create<FeedState>()(
 
         try {
           // Get all feed configs (default + remote)
-          const feedConfigs = await getAllFeeds();
-          set({ feedConfigs });
+          let feedConfigs;
+          try {
+            feedConfigs = await getAllFeeds();
+            set({ feedConfigs });
+          } catch (configError) {
+            console.warn('Failed to fetch feed configs, using existing:', configError);
+            feedConfigs = get().feedConfigs;
+          }
 
           // Parse all RSS feeds
           const { shows: newShows, episodes } = await parseAllFeeds(feedConfigs);
+
+          // Only update if we got valid data
+          if (newShows.length === 0 && hasCachedData) {
+            // Got empty results but have cached data - likely network issue
+            // Keep existing data and mark as potentially offline
+            console.warn('Refresh returned empty data, keeping cached data');
+            set({
+              isLoading: false,
+              isRefreshing: false,
+              isOffline: true,
+              error: null,
+            });
+            return;
+          }
 
           // Sort episodes by publish date (newest first)
           const sortedEpisodes = episodes.sort(
             (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
           );
 
+          // Successfully fetched new data - update state
           set({
             shows: newShows,
             episodes: sortedEpisodes,
@@ -78,11 +99,14 @@ export const useFeedStore = create<FeedState>()(
         } catch (error) {
           console.error('Error refreshing feeds:', error);
           const errorMessage = error instanceof Error ? error.message : 'Failed to refresh feeds';
-          const isNetworkError = errorMessage.includes('Network') ||
-                                 errorMessage.includes('fetch') ||
-                                 errorMessage.includes('internet') ||
-                                 errorMessage.includes('offline');
+          const isNetworkError = errorMessage.toLowerCase().includes('network') ||
+                                 errorMessage.toLowerCase().includes('fetch') ||
+                                 errorMessage.toLowerCase().includes('internet') ||
+                                 errorMessage.toLowerCase().includes('offline') ||
+                                 errorMessage.toLowerCase().includes('timeout') ||
+                                 errorMessage.toLowerCase().includes('connection');
 
+          // NEVER clear existing data on failure
           // If we have cached data, just mark as offline and don't show error
           if (hasCachedData) {
             set({

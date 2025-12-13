@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { Text, IconButton, ProgressBar } from 'react-native-paper';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,6 +43,8 @@ export default function MiniPlayer() {
           <Image
             source={{ uri: currentEpisode.imageUrl }}
             style={styles.artwork}
+            contentFit="cover"
+            cachePolicy="disk"
           />
         </View>
         <View style={styles.info}>

@@ -30,7 +30,10 @@
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.WAKE_LOCK"
       ]
     },
     "web": {
@@ -41,9 +44,16 @@
     "plugins": [
       "expo-router",
       [
-        "expo-av",
+        "expo-build-properties",
         {
-          "microphonePermission": false
+          "android": {
+            "minSdkVersion": 26,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35
+          },
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
         }
       ]
     ],

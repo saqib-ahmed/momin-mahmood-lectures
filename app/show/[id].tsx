@@ -3,10 +3,10 @@ import {
   View,
   StyleSheet,
   FlatList,
-  Image,
   TouchableOpacity,
   ImageBackground,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Text, IconButton, Chip } from 'react-native-paper';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,12 +35,18 @@ function EpisodeCard({
   return (
     <TouchableOpacity style={styles.episodeCard} onPress={onPress}>
       <View style={styles.episodeContent}>
+        <Image
+          source={{ uri: episode.imageUrl }}
+          style={styles.episodeImage}
+          contentFit="cover"
+          cachePolicy="disk"
+        />
         <View style={styles.episodeInfo}>
-          {episode.season && episode.episodeNumber && (
+          {/* {episode.season && episode.episodeNumber && (
             <Text style={styles.episodeMeta}>
               S{episode.season} E{episode.episodeNumber}
             </Text>
-          )}
+          )} */}
           <Text style={styles.episodeTitle} numberOfLines={2}>
             {episode.title}
           </Text>
@@ -66,7 +72,7 @@ function EpisodeCard({
         <IconButton
           icon={isPlaying ? 'pause-circle' : 'play-circle'}
           iconColor={COLORS.primary}
-          size={48}
+          size={44}
           onPress={onPlay}
         />
       </View>
@@ -125,16 +131,21 @@ export default function ShowDetailScreen() {
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.imageContainer}>
-        <Image source={{ uri: show.imageUrl }} style={styles.showImage} />
+        <Image
+          source={{ uri: show.imageUrl }}
+          style={styles.showImage}
+          contentFit="cover"
+          cachePolicy="disk"
+        />
         <View style={styles.imageOverlay} />
       </View>
       <View style={styles.showDetails}>
         <Text style={styles.showTitle}>{show.title}</Text>
         <Text style={styles.showAuthor}>{show.author}</Text>
-        <View style={styles.categoryRow}>
+        {/* <View style={styles.categoryRow}>
           <GoldenMandala size={16} />
           <Text style={styles.showCategory}>{show.category}</Text>
-        </View>
+        </View> */}
         <Text style={styles.episodeCount}>
           {show.episodeCount} {show.episodeCount === 1 ? 'Lecture' : 'Lectures'}
         </Text>
@@ -235,7 +246,7 @@ const styles = StyleSheet.create({
   },
   showImage: {
     width: '100%',
-    height: 200,
+    aspectRatio: 1,
     borderRadius: 12,
     backgroundColor: COLORS.surfaceLight,
     borderWidth: 1,
@@ -313,6 +324,13 @@ const styles = StyleSheet.create({
   episodeContent: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  episodeImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: COLORS.surfaceLight,
+    marginRight: 12,
   },
   episodeInfo: {
     flex: 1,

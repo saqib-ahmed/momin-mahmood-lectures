@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
+import { Image } from 'expo-image';
 import { Text, IconButton, Menu, Divider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +17,6 @@ export default function PlayerScreen() {
   const {
     currentEpisode,
     isPlaying,
-    isLoading,
     position,
     duration,
     playbackSpeed,
@@ -26,6 +26,10 @@ export default function PlayerScreen() {
     seekBackward,
     seekTo,
     changePlaybackSpeed,
+    skipToNext,
+    skipToPrevious,
+    hasQueue,
+    hasHistory,
   } = useAudioPlayer();
 
   const { setSleepTimer, clearSleepTimer, queue } = usePlayerStore();
@@ -89,6 +93,8 @@ export default function PlayerScreen() {
         <Image
           source={{ uri: currentEpisode.imageUrl }}
           style={styles.artwork}
+          contentFit="cover"
+          cachePolicy="disk"
         />
       </View>
 
@@ -97,12 +103,12 @@ export default function PlayerScreen() {
         <Text style={styles.title} numberOfLines={2}>
           {currentEpisode.title}
         </Text>
-        {currentEpisode.season && currentEpisode.episodeNumber && (
+        {/* {currentEpisode.season && currentEpisode.episodeNumber && (
           <Text style={styles.meta}>
             Season {currentEpisode.season} &middot; Episode{' '}
             {currentEpisode.episodeNumber}
           </Text>
-        )}
+        )} */}
       </View>
 
       {/* Progress Slider */}
@@ -139,28 +145,49 @@ export default function PlayerScreen() {
 
       {/* Main Controls */}
       <View style={styles.controls}>
+        {/* Skip to Previous */}
+        <IconButton
+          icon="skip-previous"
+          iconColor={hasHistory ? COLORS.text : COLORS.textSecondary}
+          size={28}
+          onPress={skipToPrevious}
+          style={styles.skipButton}
+        />
+        {/* Seek Backward */}
         <IconButton
           icon="rewind-15"
           iconColor={COLORS.text}
-          size={36}
+          size={28}
           onPress={seekBackward}
+          style={styles.seekButton}
         />
+        {/* Play/Pause */}
         <TouchableOpacity
           style={styles.playButton}
           onPress={togglePlayPause}
-          disabled={isLoading}
         >
           <IconButton
-            icon={isLoading ? 'loading' : isPlaying ? 'pause' : 'play'}
+            icon={isPlaying ? 'pause' : 'play'}
             iconColor={COLORS.background}
-            size={40}
+            size={32}
           />
         </TouchableOpacity>
+        {/* Seek Forward */}
         <IconButton
           icon="fast-forward-15"
           iconColor={COLORS.text}
-          size={36}
+          size={28}
           onPress={seekForward}
+          style={styles.seekButton}
+        />
+        {/* Skip to Next */}
+        <IconButton
+          icon="skip-next"
+          iconColor={hasQueue ? COLORS.text : COLORS.textSecondary}
+          size={28}
+          onPress={skipToNext}
+          disabled={!hasQueue}
+          style={styles.skipButton}
         />
       </View>
 
@@ -326,16 +353,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 32,
+    gap: 8,
+  },
+  skipButton: {
+    margin: 0,
+  },
+  seekButton: {
+    margin: 4,
   },
   playButton: {
     backgroundColor: COLORS.primary,
-    borderRadius: 40,
-    width: 80,
-    height: 80,
+    borderRadius: 32,
+    width: 64,
+    height: 64,
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: 12,
   },
   secondaryControls: {
     flexDirection: 'row',

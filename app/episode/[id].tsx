@@ -3,9 +3,9 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  Image,
   ImageBackground,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Text, Button, IconButton, ProgressBar } from 'react-native-paper';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -86,14 +86,19 @@ export default function EpisodeDetailScreen() {
           { paddingBottom: bottomPadding + insets.bottom + 20 },
         ]}
       >
-        <Image source={{ uri: episode.imageUrl }} style={styles.artwork} />
+        <Image
+          source={{ uri: episode.imageUrl }}
+          style={styles.artwork}
+          contentFit="cover"
+          cachePolicy="disk"
+        />
 
         <View style={styles.content}>
-          {episode.season && episode.episodeNumber && (
+          {/* {episode.season && episode.episodeNumber && (
             <Text style={styles.meta}>
               Season {episode.season} &middot; Episode {episode.episodeNumber}
             </Text>
-          )}
+          )} */}
           <Text style={styles.title}>{episode.title}</Text>
           {show && (
             <Text style={styles.showName}>{show.title}</Text>
@@ -218,7 +223,7 @@ const styles = StyleSheet.create({
   },
   artwork: {
     width: '100%',
-    height: 250,
+    aspectRatio: 1,
     backgroundColor: COLORS.surfaceLight,
   },
   content: {
