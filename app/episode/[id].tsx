@@ -13,7 +13,7 @@ import { useRSSFeed } from '../../hooks/useRSSFeed';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import { useDownloads } from '../../hooks/useDownloads';
 import { usePlayerStore } from '../../stores/playerStore';
-import { usePlaylistStore } from '../../stores/playlistStore';
+import { useLikesStore } from '../../stores/likesStore';
 import { COLORS } from '../../constants';
 import { formatDuration, stripHtml } from '../../services/rssParser';
 import { GoldenMandala } from '../../components/IslamicPattern';
@@ -31,7 +31,7 @@ export default function EpisodeDetailScreen() {
     getProgress,
   } = useDownloads();
   const { addToQueue } = usePlayerStore();
-  const { playlists, addToPlaylist } = usePlaylistStore();
+  const { toggleLike, isLiked } = useLikesStore();
 
   const episode = getEpisodeById(id || '');
   const show = episode ? getShowById(episode.showId) : null;
@@ -40,6 +40,7 @@ export default function EpisodeDetailScreen() {
   const downloadProgress = episode ? getProgress(episode.id) : undefined;
   const isCurrentEpisode = currentEpisode?.id === episode?.id;
   const playerHasEpisode = usePlayerStore((s) => s.currentEpisode);
+  const liked = episode ? isLiked(episode.id) : false;
 
   const bottomPadding = playerHasEpisode ? 80 : 0;
 
@@ -122,6 +123,15 @@ export default function EpisodeDetailScreen() {
 
           {/* Action Buttons */}
           <View style={styles.actionRow}>
+            {/* Like Button */}
+            <IconButton
+              icon={liked ? 'heart' : 'heart-outline'}
+              iconColor={liked ? COLORS.error : COLORS.textSecondary}
+              size={28}
+              onPress={() => toggleLike(episode.id)}
+              style={styles.likeButton}
+            />
+
             {/* Download/Delete Button */}
             {downloaded ? (
               <Button
@@ -154,6 +164,15 @@ export default function EpisodeDetailScreen() {
                 Download
               </Button>
             )}
+
+            {/* Add to Queue */}
+            <IconButton
+              icon="playlist-plus"
+              iconColor={COLORS.textSecondary}
+              size={28}
+              onPress={() => addToQueue(episode)}
+              style={styles.queueButton}
+            />
           </View>
 
           {/* Description */}
@@ -234,8 +253,13 @@ const styles = StyleSheet.create({
     flex: 1,
     borderColor: COLORS.surfaceLight,
   },
-  iconButton: {
+  likeButton: {
     backgroundColor: COLORS.surface,
+    margin: 0,
+  },
+  queueButton: {
+    backgroundColor: COLORS.surface,
+    margin: 0,
   },
   downloadingContainer: {
     flex: 1,
@@ -250,22 +274,11 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: COLORS.surfaceLight,
   },
-  playlistSection: {
-    marginBottom: 20,
-  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 12,
-  },
-  playlistButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  playlistButton: {
-    borderColor: COLORS.surfaceLight,
   },
   descriptionSection: {
     marginTop: 8,

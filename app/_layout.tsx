@@ -83,15 +83,15 @@ export default function RootLayout() {
                 }}
               />
               <Stack.Screen
-                name='playlists/index'
+                name='likes'
                 options={{
-                  title: "Playlists",
+                  title: "Liked Lectures",
                 }}
               />
               <Stack.Screen
-                name='playlists/[id]'
+                name='search'
                 options={{
-                  title: "Playlist",
+                  title: "Search",
                 }}
               />
               <Stack.Screen

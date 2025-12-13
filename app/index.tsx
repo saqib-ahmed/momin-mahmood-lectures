@@ -80,17 +80,23 @@ export default function HomeScreen() {
   const HeaderRight = () => (
     <View style={styles.headerActions}>
       <IconButton
+        icon="magnify"
+        iconColor={COLORS.gold}
+        size={22}
+        onPress={() => router.push('/search')}
+      />
+      <IconButton
+        icon="heart"
+        iconColor={COLORS.gold}
+        size={22}
+        onPress={() => router.push('/likes')}
+      />
+      <IconButton
         icon="download"
         iconColor={COLORS.gold}
         size={22}
         onPress={() => router.push('/downloads')}
       />
-      {/* <IconButton
-        icon="playlist-music"
-        iconColor={COLORS.gold}
-        size={22}
-        onPress={() => router.push('/playlists')}
-      /> */}
       <IconButton
         icon="cog"
         iconColor={COLORS.gold}

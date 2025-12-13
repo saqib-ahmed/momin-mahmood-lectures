@@ -49,15 +49,6 @@ export interface DownloadProgress {
   status: 'queued' | 'downloading' | 'completed' | 'failed' | 'cancelled';
 }
 
-// Playlist
-export interface Playlist {
-  id: string;
-  name: string;
-  episodeIds: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 // Playback State
 export interface PlaybackState {
   currentEpisode: Episode | null;

@@ -20,7 +20,7 @@ export const STORAGE_KEYS = {
   SHOWS: 'shows',
   EPISODES: 'episodes',
   DOWNLOADS: 'downloads',
-  PLAYLISTS: 'playlists',
+  LIKES: 'likes',
   PLAYBACK_POSITIONS: 'playback_positions',
   QUEUE: 'queue',
   SETTINGS: 'settings',
