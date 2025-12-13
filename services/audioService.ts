@@ -55,16 +55,28 @@ class AudioService {
       album: episode.season ? `Season ${episode.season}` : undefined,
     };
 
+    const shouldAutoPlay = options?.autoPlay ?? true;
     const playOptions: PlayOptions = {
-      autoPlay: options?.autoPlay ?? true,
+      autoPlay: shouldAutoPlay,
       startTimeMs: options?.startTimeMs ?? 0,
     };
 
-    await AudioPro.play(track, playOptions);
+    AudioPro.play(track, playOptions);
 
     // Set playback speed if specified
     if (options?.playbackSpeed && options.playbackSpeed !== 1.0) {
-      await AudioPro.setPlaybackSpeed(options.playbackSpeed);
+      AudioPro.setPlaybackSpeed(options.playbackSpeed);
+    }
+
+    // Ensure playback starts if autoPlay is requested
+    // Small delay to let the track load before resuming
+    if (shouldAutoPlay) {
+      setTimeout(() => {
+        const state = AudioPro.getState();
+        if (state === AudioProState.PAUSED || state === AudioProState.STOPPED) {
+          AudioPro.resume();
+        }
+      }, 100);
     }
   }
 

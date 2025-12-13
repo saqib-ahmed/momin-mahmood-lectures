@@ -5,9 +5,10 @@ import {
   FlatList,
   TouchableOpacity,
   ImageBackground,
+  Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Text, IconButton, Chip } from 'react-native-paper';
+import { Text, IconButton, Chip, Button } from 'react-native-paper';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRSSFeed } from '../../hooks/useRSSFeed';
@@ -128,6 +129,12 @@ export default function ShowDetailScreen() {
     );
   }
 
+  const hasResourceLinks = show.youtubePlaylist || show.pdfUrl || show.shamelaUrl;
+
+  const openUrl = (url: string) => {
+    Linking.openURL(url).catch((err) => console.error('Failed to open URL:', err));
+  };
+
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.imageContainer}>
@@ -150,6 +157,55 @@ export default function ShowDetailScreen() {
           {show.episodeCount} {show.episodeCount === 1 ? 'Lecture' : 'Lectures'}
         </Text>
       </View>
+
+      {/* External Resource Links */}
+      {hasResourceLinks && (
+        <View style={styles.resourceLinks}>
+          {show.youtubePlaylist && (
+            <TouchableOpacity
+              style={styles.resourceButton}
+              onPress={() => openUrl(show.youtubePlaylist!)}
+            >
+              <IconButton
+                icon="youtube"
+                iconColor={COLORS.text}
+                size={20}
+                style={styles.resourceIcon}
+              />
+              <Text style={styles.resourceText}>YouTube</Text>
+            </TouchableOpacity>
+          )}
+          {show.pdfUrl && (
+            <TouchableOpacity
+              style={styles.resourceButton}
+              onPress={() => openUrl(show.pdfUrl!)}
+            >
+              <IconButton
+                icon="file-pdf-box"
+                iconColor={COLORS.text}
+                size={20}
+                style={styles.resourceIcon}
+              />
+              <Text style={styles.resourceText}>PDF</Text>
+            </TouchableOpacity>
+          )}
+          {show.shamelaUrl && (
+            <TouchableOpacity
+              style={styles.resourceButton}
+              onPress={() => openUrl(show.shamelaUrl!)}
+            >
+              <IconButton
+                icon="book-open-variant"
+                iconColor={COLORS.text}
+                size={20}
+                style={styles.resourceIcon}
+              />
+              <Text style={styles.resourceText}>Shamela</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
       <HeaderDecoration />
       {seasons.length > 1 && (
         <View style={styles.seasonFilter}>
@@ -288,6 +344,31 @@ const styles = StyleSheet.create({
   episodeCount: {
     fontSize: 14,
     color: COLORS.textSecondary,
+  },
+  resourceLinks: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  resourceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingRight: 12,
+    paddingVertical: 2,
+  },
+  resourceIcon: {
+    margin: 0,
+  },
+  resourceText: {
+    fontSize: 13,
+    color: COLORS.text,
+    fontWeight: '500',
   },
   seasonFilter: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { useAudioPro, AudioProState } from 'react-native-audio-pro';
+import { useAudioPro, AudioProState, AudioPro, AudioProEventType } from 'react-native-audio-pro';
 import { audioService } from '../services/audioService';
 import { usePlayerStore } from '../stores/playerStore';
 import { useDownloadStore } from '../stores/downloadStore';
@@ -31,7 +31,6 @@ export function useAudioPlayer() {
     playNext,
     playPrevious,
     clearSleepTimer,
-    addToQueue,
     setQueue,
   } = usePlayerStore();
 
@@ -120,6 +119,78 @@ export function useAudioPlayer() {
       }
     };
   }, [currentEpisode, isPlaying, savePosition]);
+
+  // Handle track ended and remote controls
+  useEffect(() => {
+    const subscription = AudioPro.addEventListener((event) => {
+      if (event.type === AudioProEventType.TRACK_ENDED) {
+        // Auto-play next if enabled in settings
+        const settings = useSettingsStore.getState();
+        if (settings.autoPlayNext) {
+          const playerState = usePlayerStore.getState();
+          if (playerState.queue.length > 0) {
+            // Play next track from queue
+            const nextEpisode = playerState.playNext();
+            if (nextEpisode) {
+              const localPath = useDownloadStore.getState().getLocalPath(nextEpisode.id);
+              const uri = localPath || nextEpisode.audioUrl;
+              const initialPosition = playerState.getSavedPosition(nextEpisode.id);
+              audioService.play(nextEpisode, uri, {
+                startTimeMs: initialPosition,
+                autoPlay: true,
+                playbackSpeed: playerState.playbackSpeed,
+              });
+            }
+          }
+        }
+      } else if (event.type === AudioProEventType.REMOTE_NEXT) {
+        // Handle remote next button (lock screen, headphones)
+        const playerState = usePlayerStore.getState();
+        if (playerState.queue.length > 0) {
+          const nextEpisode = playerState.playNext();
+          if (nextEpisode) {
+            const localPath = useDownloadStore.getState().getLocalPath(nextEpisode.id);
+            const uri = localPath || nextEpisode.audioUrl;
+            const initialPosition = playerState.getSavedPosition(nextEpisode.id);
+            audioService.play(nextEpisode, uri, {
+              startTimeMs: initialPosition,
+              autoPlay: true,
+              playbackSpeed: playerState.playbackSpeed,
+            });
+          }
+        }
+      } else if (event.type === AudioProEventType.REMOTE_PREV) {
+        // Handle remote previous button (lock screen, headphones)
+        const playerState = usePlayerStore.getState();
+        const { position } = AudioPro.getTimings();
+
+        // If more than 3 seconds in, restart current track
+        if (position > 3000) {
+          audioService.seekTo(0);
+        } else if (playerState.playHistory.length > 0) {
+          // Go to previous track
+          const prevEpisode = playerState.playPrevious();
+          if (prevEpisode) {
+            const localPath = useDownloadStore.getState().getLocalPath(prevEpisode.id);
+            const uri = localPath || prevEpisode.audioUrl;
+            const initialPosition = playerState.getSavedPosition(prevEpisode.id);
+            audioService.play(prevEpisode, uri, {
+              startTimeMs: initialPosition,
+              autoPlay: true,
+              playbackSpeed: playerState.playbackSpeed,
+            });
+          }
+        } else {
+          // No previous, just restart
+          audioService.seekTo(0);
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   // Play an episode (with auto-queue of subsequent episodes from same show)
   const playEpisode = useCallback(
@@ -259,24 +330,6 @@ export function useAudioPlayer() {
     }
   }, [positionNow, playPrevious, getLocalPath, getSavedPosition, playbackSpeed]);
 
-  // Add current show's episodes to queue
-  const addShowToQueue = useCallback(
-    (afterCurrentEpisode = true) => {
-      if (!currentEpisode) return;
-
-      const showEpisodes = getEpisodesByShowId(currentEpisode.showId);
-      const currentIndex = showEpisodes.findIndex(
-        (ep) => ep.id === currentEpisode.id
-      );
-
-      // Add episodes after the current one to the queue
-      if (afterCurrentEpisode && currentIndex >= 0) {
-        showEpisodes.slice(currentIndex + 1).forEach((ep) => addToQueue(ep));
-      }
-    },
-    [currentEpisode, getEpisodesByShowId, addToQueue]
-  );
-
   return {
     // State - use real-time values from audioState for smooth UI
     currentEpisode,
@@ -287,8 +340,6 @@ export function useAudioPlayer() {
     duration: durationNow,
     playbackSpeed,
     sleepTimerEndTime,
-    queue,
-    playHistory,
 
     // Actions
     playEpisode,
@@ -300,7 +351,6 @@ export function useAudioPlayer() {
     stop,
     skipToNext,
     skipToPrevious,
-    addShowToQueue,
 
     // Helpers
     isEpisodeDownloaded: isDownloaded,

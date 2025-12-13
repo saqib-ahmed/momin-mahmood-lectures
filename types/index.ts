@@ -3,6 +3,10 @@ export interface FeedConfig {
   id: string;
   url: string;
   name: string;
+  // Optional external resource links
+  youtube_playlist?: string;
+  pdf_url?: string;
+  shamela_url?: string;
 }
 
 // Podcast Show (parsed from RSS channel)
@@ -17,6 +21,10 @@ export interface Show {
   language: string;
   episodeCount: number;
   lastBuildDate?: Date;
+  // Optional external resource links
+  youtubePlaylist?: string;
+  pdfUrl?: string;
+  shamelaUrl?: string;
 }
 
 // Episode (parsed from RSS item)

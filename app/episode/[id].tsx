@@ -30,7 +30,7 @@ export default function EpisodeDetailScreen() {
     deleteDownload,
     getProgress,
   } = useDownloads();
-  const { addToQueue } = usePlayerStore();
+  const playerHasEpisode = usePlayerStore((s) => s.currentEpisode);
   const { toggleLike, isLiked } = useLikesStore();
 
   const episode = getEpisodeById(id || '');
@@ -39,7 +39,6 @@ export default function EpisodeDetailScreen() {
   const downloading = episode ? isDownloading(episode.id) : false;
   const downloadProgress = episode ? getProgress(episode.id) : undefined;
   const isCurrentEpisode = currentEpisode?.id === episode?.id;
-  const playerHasEpisode = usePlayerStore((s) => s.currentEpisode);
   const liked = episode ? isLiked(episode.id) : false;
 
   const bottomPadding = playerHasEpisode ? 80 : 0;
@@ -164,15 +163,6 @@ export default function EpisodeDetailScreen() {
                 Download
               </Button>
             )}
-
-            {/* Add to Queue */}
-            <IconButton
-              icon="playlist-plus"
-              iconColor={COLORS.textSecondary}
-              size={28}
-              onPress={() => addToQueue(episode)}
-              style={styles.queueButton}
-            />
           </View>
 
           {/* Description */}
@@ -254,10 +244,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.surfaceLight,
   },
   likeButton: {
-    backgroundColor: COLORS.surface,
-    margin: 0,
-  },
-  queueButton: {
     backgroundColor: COLORS.surface,
     margin: 0,
   },

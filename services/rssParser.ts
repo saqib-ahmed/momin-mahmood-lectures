@@ -110,6 +110,10 @@ export async function parseRSSFeed(
     lastBuildDate: channel.lastBuildDate
       ? new Date(channel.lastBuildDate)
       : undefined,
+    // Optional external resource links from feed config
+    youtubePlaylist: feedConfig.youtube_playlist,
+    pdfUrl: feedConfig.pdf_url,
+    shamelaUrl: feedConfig.shamela_url,
   };
 
   // Parse episodes
