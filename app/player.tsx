@@ -220,7 +220,7 @@ export default function PlayerScreen() {
         </Menu>
 
         {/* Sleep Timer */}
-        <Menu
+        {/* <Menu
           visible={sleepMenuVisible}
           onDismiss={() => setSleepMenuVisible(false)}
           anchor={
@@ -260,10 +260,10 @@ export default function PlayerScreen() {
               title={`${minutes} minutes`}
             />
           ))}
-        </Menu>
+        </Menu> */}
 
         {/* Queue */}
-        <TouchableOpacity style={styles.controlButton}>
+        {/* <TouchableOpacity style={styles.controlButton}>
           <IconButton
             icon="playlist-play"
             iconColor={COLORS.textSecondary}
@@ -272,7 +272,7 @@ export default function PlayerScreen() {
           {queue.length > 0 && (
             <Text style={styles.queueCount}>{queue.length}</Text>
           )}
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       <View style={{ height: insets.bottom + 20 }} />

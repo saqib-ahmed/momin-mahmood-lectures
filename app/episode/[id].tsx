@@ -94,11 +94,6 @@ export default function EpisodeDetailScreen() {
         />
 
         <View style={styles.content}>
-          {/* {episode.season && episode.episodeNumber && (
-            <Text style={styles.meta}>
-              Season {episode.season} &middot; Episode {episode.episodeNumber}
-            </Text>
-          )} */}
           <Text style={styles.title}>{episode.title}</Text>
           {show && (
             <Text style={styles.showName}>{show.title}</Text>
@@ -151,7 +146,7 @@ export default function EpisodeDetailScreen() {
               </View>
             ) : (
               <Button
-                mode="outlined"
+                mode="contained-tonal"
                 icon="download"
                 onPress={() => startDownload(episode)}
                 style={styles.actionButton}
@@ -159,36 +154,7 @@ export default function EpisodeDetailScreen() {
                 Download
               </Button>
             )}
-
-            {/* Add to Queue */}
-            <IconButton
-              icon="playlist-plus"
-              iconColor={COLORS.text}
-              size={24}
-              onPress={() => addToQueue(episode)}
-              style={styles.iconButton}
-            />
           </View>
-
-          {/* Add to Playlist */}
-          {playlists.length > 0 && (
-            <View style={styles.playlistSection}>
-              <Text style={styles.sectionTitle}>Add to Playlist</Text>
-              <View style={styles.playlistButtons}>
-                {playlists.map((playlist) => (
-                  <Button
-                    key={playlist.id}
-                    mode="outlined"
-                    compact
-                    onPress={() => addToPlaylist(playlist.id, episode.id)}
-                    style={styles.playlistButton}
-                  >
-                    {playlist.name}
-                  </Button>
-                ))}
-              </View>
-            </View>
-          )}
 
           {/* Description */}
           <View style={styles.descriptionSection}>

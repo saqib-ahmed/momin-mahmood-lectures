@@ -15,7 +15,7 @@ import { useRSSFeed } from '../hooks/useRSSFeed';
 import { usePlayerStore } from '../stores/playerStore';
 import { COLORS } from '../constants';
 import { Show } from '../types';
-import { GoldenMandala, HeaderDecoration } from '../components/IslamicPattern';
+import { GoldenMandala } from '../components/IslamicPattern';
 
 function LectureSeriesCard({ show, onPress }: { show: Show; onPress: () => void }) {
   return (
@@ -59,7 +59,7 @@ export default function HomeScreen() {
   const bottomPadding = currentEpisode ? 80 : 0;
 
   const renderHeader = () => (
-    <View style={styles.headerContainer}>
+    <>
       {/* Offline Banner */}
       {isOffline && (
         <View style={styles.offlineBanner}>
@@ -74,33 +74,29 @@ export default function HomeScreen() {
           </Text>
         </View>
       )}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Lecture Series</Text>
-          {/* <Text style={styles.headerSubtitle}>Islamic Knowledge & Guidance</Text> */}
-        </View>
-        <View style={styles.headerActions}>
-          <IconButton
-            icon="download"
-            iconColor={COLORS.gold}
-            size={24}
-            onPress={() => router.push('/downloads')}
-          />
-          <IconButton
-            icon="playlist-music"
-            iconColor={COLORS.gold}
-            size={24}
-            onPress={() => router.push('/playlists')}
-          />
-          <IconButton
-            icon="cog"
-            iconColor={COLORS.gold}
-            size={24}
-            onPress={() => router.push('/settings')}
-          />
-        </View>
-      </View>
-      <HeaderDecoration />
+    </>
+  );
+
+  const HeaderRight = () => (
+    <View style={styles.headerActions}>
+      <IconButton
+        icon="download"
+        iconColor={COLORS.gold}
+        size={22}
+        onPress={() => router.push('/downloads')}
+      />
+      {/* <IconButton
+        icon="playlist-music"
+        iconColor={COLORS.gold}
+        size={22}
+        onPress={() => router.push('/playlists')}
+      /> */}
+      <IconButton
+        icon="cog"
+        iconColor={COLORS.gold}
+        size={22}
+        onPress={() => router.push('/settings')}
+      />
     </View>
   );
 
@@ -147,6 +143,11 @@ export default function HomeScreen() {
       resizeMode="cover"
       imageStyle={{ opacity: 0.1 }}
     >
+      <Stack.Screen
+        options={{
+          headerRight: HeaderRight,
+        }}
+      />
       <FlatList
         data={shows}
         keyExtractor={(item) => item.id}
@@ -227,26 +228,6 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontWeight: '600',
   },
-  headerContainer: {
-    paddingTop: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: COLORS.gold,
-    marginTop: 2,
-  },
   offlineBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -255,6 +236,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     marginHorizontal: 16,
+    marginTop: 8,
     marginBottom: 8,
     borderRadius: 8,
   },

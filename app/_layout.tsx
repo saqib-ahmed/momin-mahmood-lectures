@@ -54,8 +54,7 @@ export default function RootLayout() {
               <Stack.Screen
                 name='index'
                 options={{
-                  title: "Momin Lectures",
-                  headerShown: false,
+                  title: "Lecture Series",
                 }}
               />
               <Stack.Screen
