@@ -15,8 +15,9 @@ import { useDownloads } from '../../hooks/useDownloads';
 import { usePlayerStore } from '../../stores/playerStore';
 import { useLikesStore } from '../../stores/likesStore';
 import { COLORS } from '../../constants';
-import { formatDuration, stripHtml } from '../../services/rssParser';
+import { formatDuration } from '../../services/rssParser';
 import { GoldenMandala } from '../../components/IslamicPattern';
+import { SimpleHtml } from '../../components/SimpleHtml';
 
 export default function EpisodeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -168,9 +169,7 @@ export default function EpisodeDetailScreen() {
           {/* Description */}
           <View style={styles.descriptionSection}>
             <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>
-              {stripHtml(episode.description)}
-            </Text>
+            <SimpleHtml html={episode.description} baseStyle={styles.description} />
           </View>
         </View>
       </ScrollView>
