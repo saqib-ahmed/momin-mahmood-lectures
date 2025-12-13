@@ -117,6 +117,7 @@ export default function EpisodeDetailScreen() {
             }}
             style={styles.playButton}
             contentStyle={styles.playButtonContent}
+            textColor={COLORS.text}
           >
             {isCurrentEpisode && isPlaying ? 'Pause' : 'Play Episode'}
           </Button>

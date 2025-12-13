@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,9 +16,122 @@ import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import { useDownloads } from '../../hooks/useDownloads';
 import { usePlayerStore } from '../../stores/playerStore';
 import { COLORS } from '../../constants';
-import { Episode } from '../../types';
+import { Episode, Show } from '../../types';
 import { formatDuration, stripHtml } from '../../services/rssParser';
 import { GoldenMandala, HeaderDecoration } from '../../components/IslamicPattern';
+
+// Memoized header component to prevent re-renders during audio playback
+const ShowHeader = memo(function ShowHeader({
+  show,
+  seasons,
+  selectedSeason,
+  onSeasonSelect,
+}: {
+  show: Show;
+  seasons: number[];
+  selectedSeason: number | null;
+  onSeasonSelect: (season: number | null) => void;
+}) {
+  const hasResourceLinks = show.youtubePlaylist || show.pdfUrl || show.shamelaUrl;
+
+  const openUrl = (url: string) => {
+    Linking.openURL(url).catch((err) => console.error('Failed to open URL:', err));
+  };
+
+  return (
+    <View style={styles.header}>
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: show.imageUrl }}
+          style={styles.showImage}
+          contentFit="cover"
+          cachePolicy="disk"
+        />
+        <View style={styles.imageOverlay} />
+      </View>
+      <View style={styles.showDetails}>
+        <Text style={styles.showTitle}>{show.title}</Text>
+        <Text style={styles.showAuthor}>{show.author}</Text>
+        <Text style={styles.episodeCount}>
+          {show.episodeCount} {show.episodeCount === 1 ? 'Lecture' : 'Lectures'}
+        </Text>
+      </View>
+
+      {/* External Resource Links */}
+      {hasResourceLinks && (
+        <View style={styles.resourceLinks}>
+          {show.youtubePlaylist && (
+            <TouchableOpacity
+              style={styles.resourceButton}
+              onPress={() => openUrl(show.youtubePlaylist!)}
+            >
+              <IconButton
+                icon="youtube"
+                iconColor={COLORS.text}
+                size={20}
+                style={styles.resourceIcon}
+              />
+              <Text style={styles.resourceText}>YouTube</Text>
+            </TouchableOpacity>
+          )}
+          {show.pdfUrl && (
+            <TouchableOpacity
+              style={styles.resourceButton}
+              onPress={() => openUrl(show.pdfUrl!)}
+            >
+              <IconButton
+                icon="file-pdf-box"
+                iconColor={COLORS.text}
+                size={20}
+                style={styles.resourceIcon}
+              />
+              <Text style={styles.resourceText}>PDF</Text>
+            </TouchableOpacity>
+          )}
+          {show.shamelaUrl && (
+            <TouchableOpacity
+              style={styles.resourceButton}
+              onPress={() => openUrl(show.shamelaUrl!)}
+            >
+              <IconButton
+                icon="book-open-variant"
+                iconColor={COLORS.text}
+                size={20}
+                style={styles.resourceIcon}
+              />
+              <Text style={styles.resourceText}>Shamela</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      <HeaderDecoration />
+      {seasons.length > 1 && (
+        <View style={styles.seasonFilter}>
+          <Chip
+            selected={selectedSeason === null}
+            onPress={() => onSeasonSelect(null)}
+            style={[styles.seasonChip, selectedSeason === null && styles.seasonChipSelected]}
+            textStyle={styles.seasonChipText}
+          >
+            All
+          </Chip>
+          {seasons.map((season) => (
+            <Chip
+              key={season}
+              selected={selectedSeason === season}
+              onPress={() => onSeasonSelect(season)}
+              style={[styles.seasonChip, selectedSeason === season && styles.seasonChipSelected]}
+              textStyle={styles.seasonChipText}
+            >
+              Part {season}
+            </Chip>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+});
 
 function EpisodeCard({
   episode,
@@ -115,6 +228,24 @@ export default function ShowDetailScreen() {
     return episodes.filter((ep) => ep.season === selectedSeason);
   }, [episodes, selectedSeason]);
 
+  // Memoize the season select callback to prevent ShowHeader re-renders
+  const handleSeasonSelect = useCallback((season: number | null) => {
+    setSelectedSeason(season);
+  }, []);
+
+  // Memoize the header element to prevent recreation on every render
+  const headerElement = useMemo(() => {
+    if (!show) return null;
+    return (
+      <ShowHeader
+        show={show}
+        seasons={seasons}
+        selectedSeason={selectedSeason}
+        onSeasonSelect={handleSeasonSelect}
+      />
+    );
+  }, [show, seasons, selectedSeason, handleSeasonSelect]);
+
   if (!show) {
     return (
       <ImageBackground
@@ -128,110 +259,6 @@ export default function ShowDetailScreen() {
       </ImageBackground>
     );
   }
-
-  const hasResourceLinks = show.youtubePlaylist || show.pdfUrl || show.shamelaUrl;
-
-  const openUrl = (url: string) => {
-    Linking.openURL(url).catch((err) => console.error('Failed to open URL:', err));
-  };
-
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: show.imageUrl }}
-          style={styles.showImage}
-          contentFit="cover"
-          cachePolicy="disk"
-        />
-        <View style={styles.imageOverlay} />
-      </View>
-      <View style={styles.showDetails}>
-        <Text style={styles.showTitle}>{show.title}</Text>
-        <Text style={styles.showAuthor}>{show.author}</Text>
-        {/* <View style={styles.categoryRow}>
-          <GoldenMandala size={16} />
-          <Text style={styles.showCategory}>{show.category}</Text>
-        </View> */}
-        <Text style={styles.episodeCount}>
-          {show.episodeCount} {show.episodeCount === 1 ? 'Lecture' : 'Lectures'}
-        </Text>
-      </View>
-
-      {/* External Resource Links */}
-      {hasResourceLinks && (
-        <View style={styles.resourceLinks}>
-          {show.youtubePlaylist && (
-            <TouchableOpacity
-              style={styles.resourceButton}
-              onPress={() => openUrl(show.youtubePlaylist!)}
-            >
-              <IconButton
-                icon="youtube"
-                iconColor={COLORS.text}
-                size={20}
-                style={styles.resourceIcon}
-              />
-              <Text style={styles.resourceText}>YouTube</Text>
-            </TouchableOpacity>
-          )}
-          {show.pdfUrl && (
-            <TouchableOpacity
-              style={styles.resourceButton}
-              onPress={() => openUrl(show.pdfUrl!)}
-            >
-              <IconButton
-                icon="file-pdf-box"
-                iconColor={COLORS.text}
-                size={20}
-                style={styles.resourceIcon}
-              />
-              <Text style={styles.resourceText}>PDF</Text>
-            </TouchableOpacity>
-          )}
-          {show.shamelaUrl && (
-            <TouchableOpacity
-              style={styles.resourceButton}
-              onPress={() => openUrl(show.shamelaUrl!)}
-            >
-              <IconButton
-                icon="book-open-variant"
-                iconColor={COLORS.text}
-                size={20}
-                style={styles.resourceIcon}
-              />
-              <Text style={styles.resourceText}>Shamela</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      <HeaderDecoration />
-      {seasons.length > 1 && (
-        <View style={styles.seasonFilter}>
-          <Chip
-            selected={selectedSeason === null}
-            onPress={() => setSelectedSeason(null)}
-            style={[styles.seasonChip, selectedSeason === null && styles.seasonChipSelected]}
-            textStyle={styles.seasonChipText}
-          >
-            All
-          </Chip>
-          {seasons.map((season) => (
-            <Chip
-              key={season}
-              selected={selectedSeason === season}
-              onPress={() => setSelectedSeason(season)}
-              style={[styles.seasonChip, selectedSeason === season && styles.seasonChipSelected]}
-              textStyle={styles.seasonChipText}
-            >
-              Part {season}
-            </Chip>
-          ))}
-        </View>
-      )}
-    </View>
-  );
 
   return (
     <ImageBackground
@@ -267,7 +294,7 @@ export default function ShowDetailScreen() {
             />
           );
         }}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={headerElement}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: bottomPadding + insets.bottom },
