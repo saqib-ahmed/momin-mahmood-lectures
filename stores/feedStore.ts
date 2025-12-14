@@ -137,7 +137,20 @@ export const useFeedStore = create<FeedState>()(
       },
 
       getEpisodesByShowId: (showId: string) => {
-        return get().episodes.filter((episode) => episode.showId === showId);
+        const showEpisodes = get().episodes.filter((episode) => episode.showId === showId);
+        // Sort by episodeNumber ascending (oldest/first episode first)
+        // If no episodeNumber, fall back to publishedAt ascending
+        return showEpisodes.sort((a, b) => {
+          // First try to sort by episode number
+          if (a.episodeNumber !== undefined && b.episodeNumber !== undefined) {
+            return a.episodeNumber - b.episodeNumber;
+          }
+          // If one has episode number and other doesn't, prioritize the one with number
+          if (a.episodeNumber !== undefined) return -1;
+          if (b.episodeNumber !== undefined) return 1;
+          // Fall back to publishedAt ascending (oldest first)
+          return a.publishedAt.getTime() - b.publishedAt.getTime();
+        });
       },
 
       setError: (error: string | null) => {

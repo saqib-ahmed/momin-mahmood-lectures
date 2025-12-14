@@ -387,6 +387,8 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 12,
     marginBottom: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   resourceButton: {
     flexDirection: 'row',
