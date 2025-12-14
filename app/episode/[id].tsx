@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   ImageBackground,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Text, Button, IconButton, ProgressBar } from 'react-native-paper';
@@ -23,7 +24,7 @@ export default function EpisodeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { getEpisodeById, getShowById } = useRSSFeed();
-  const { playEpisode, currentEpisode, isPlaying, togglePlayPause } = useAudioPlayer();
+  const { playEpisode, currentEpisode, isPlaying, isLoading, togglePlayPause } = useAudioPlayer();
   const {
     isDownloaded,
     isDownloading,
@@ -105,22 +106,29 @@ export default function EpisodeDetailScreen() {
           </Text>
 
           {/* Play/Pause Button */}
-          <Button
-            mode="contained"
-            icon={isCurrentEpisode && isPlaying ? 'pause' : 'play'}
-            onPress={() => {
-              if (isCurrentEpisode) {
-                togglePlayPause();
-              } else {
-                playEpisode(episode);
-              }
-            }}
-            style={styles.playButton}
-            contentStyle={styles.playButtonContent}
-            textColor={COLORS.text}
-          >
-            {isCurrentEpisode && isPlaying ? 'Pause' : 'Play Episode'}
-          </Button>
+          {isCurrentEpisode && isLoading ? (
+            <View style={[styles.playButton, styles.loadingButtonContainer]}>
+              <ActivityIndicator size={24} color={COLORS.text} style={{ marginRight: 8 }} />
+              <Text style={styles.loadingButtonText}>Loading...</Text>
+            </View>
+          ) : (
+            <Button
+              mode="contained"
+              icon={isCurrentEpisode && isPlaying ? 'pause' : 'play'}
+              onPress={() => {
+                if (isCurrentEpisode) {
+                  togglePlayPause();
+                } else {
+                  playEpisode(episode);
+                }
+              }}
+              style={styles.playButton}
+              contentStyle={styles.playButtonContent}
+              textColor={COLORS.text}
+            >
+              {isCurrentEpisode && isPlaying ? 'Pause' : 'Play Episode'}
+            </Button>
+          )}
 
           {/* Action Buttons */}
           <View style={styles.actionRow}>
@@ -232,6 +240,18 @@ const styles = StyleSheet.create({
   },
   playButtonContent: {
     paddingVertical: 8,
+  },
+  loadingButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 20,
+  },
+  loadingButtonText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: '500',
   },
   actionRow: {
     flexDirection: 'row',

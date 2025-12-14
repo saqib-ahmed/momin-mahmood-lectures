@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Text, IconButton, ProgressBar } from 'react-native-paper';
 import { useRouter, usePathname } from 'expo-router';
@@ -55,14 +55,19 @@ export default function MiniPlayer() {
             Tap to expand
           </Text>
         </View>
-        <IconButton
-          icon={isLoading ? 'loading' : isPlaying ? 'pause' : 'play'}
-          iconColor={COLORS.gold}
-          size={28}
-          onPress={togglePlayPause}
-          disabled={isLoading}
-          style={styles.playButton}
-        />
+{isLoading ? (
+          <View style={[styles.playButton, styles.loadingButton]}>
+            <ActivityIndicator size={24} color={COLORS.gold} />
+          </View>
+        ) : (
+          <IconButton
+            icon={isPlaying ? 'pause' : 'play'}
+            iconColor={COLORS.gold}
+            size={28}
+            onPress={togglePlayPause}
+            style={styles.playButton}
+          />
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -118,5 +123,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 20,
+  },
+  loadingButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

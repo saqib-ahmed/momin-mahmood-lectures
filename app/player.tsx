@@ -1,15 +1,13 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, ImageBackground, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { Text, IconButton, Menu, Divider } from 'react-native-paper';
+import { Text, IconButton, Menu } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { usePlayerStore } from '../stores/playerStore';
-import { COLORS, PLAYBACK_SPEEDS, SLEEP_TIMER_OPTIONS } from '../constants';
+import { COLORS, PLAYBACK_SPEEDS } from '../constants';
 import { formatDuration } from '../services/rssParser';
-import { GoldenMandala } from '../components/IslamicPattern';
 
 export default function PlayerScreen() {
   const router = useRouter();
@@ -17,10 +15,11 @@ export default function PlayerScreen() {
   const {
     currentEpisode,
     isPlaying,
+    isLoading,
+    isBuffering,
     position,
     duration,
     playbackSpeed,
-    sleepTimerEndTime,
     togglePlayPause,
     seekForward,
     seekBackward,
@@ -32,12 +31,22 @@ export default function PlayerScreen() {
     hasHistory,
   } = useAudioPlayer();
 
-  const { setSleepTimer, clearSleepTimer, queue } = usePlayerStore();
-
   const [speedMenuVisible, setSpeedMenuVisible] = useState(false);
-  const [sleepMenuVisible, setSleepMenuVisible] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekPosition, setSeekPosition] = useState(0);
+  const seekTargetRef = useRef<number | null>(null);
+
+  // Clear seeking state once the audio position catches up to the seek target
+  useEffect(() => {
+    if (isSeeking && seekTargetRef.current !== null) {
+      const targetPosition = seekTargetRef.current;
+      // Check if position is within 500ms of target (allowing for some tolerance)
+      if (Math.abs(position - targetPosition) < 500) {
+        setIsSeeking(false);
+        seekTargetRef.current = null;
+      }
+    }
+  }, [position, isSeeking]);
 
   if (!currentEpisode) {
     return (
@@ -61,11 +70,6 @@ export default function PlayerScreen() {
   const durationSeconds = duration / 1000;
   const progress = durationSeconds > 0 ? positionSeconds / durationSeconds : 0;
 
-  // Calculate remaining sleep time
-  const sleepTimeRemaining = sleepTimerEndTime
-    ? Math.max(0, Math.floor((sleepTimerEndTime - Date.now()) / 60000))
-    : null;
-
   return (
     <ImageBackground
       source={require('../assets/background-transparent.png')}
@@ -73,20 +77,7 @@ export default function PlayerScreen() {
       resizeMode="cover"
       imageStyle={{ opacity: 0.1 }}
     >
-      <View style={styles.container}>
-      {/* Header */}
-      {/* <View style={styles.header}>
-        <IconButton
-          icon="chevron-down"
-          iconColor={COLORS.text}
-          size={28}
-          onPress={() => router.back()}
-        />
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Now Playing
-        </Text>
-        <View style={{ width: 40 }} />
-      </View> */}
+      <View style={styles.content}>
 
       {/* Artwork */}
       <View style={styles.artworkContainer}>
@@ -103,12 +94,6 @@ export default function PlayerScreen() {
         <Text style={styles.title} numberOfLines={2}>
           {currentEpisode.title}
         </Text>
-        {/* {currentEpisode.season && currentEpisode.episodeNumber && (
-          <Text style={styles.meta}>
-            Season {currentEpisode.season} &middot; Episode{' '}
-            {currentEpisode.episodeNumber}
-          </Text>
-        )} */}
       </View>
 
       {/* Progress Slider */}
@@ -119,18 +104,23 @@ export default function PlayerScreen() {
           minimumValue={0}
           maximumValue={1}
           minimumTrackTintColor={COLORS.primary}
-          maximumTrackTintColor={COLORS.surfaceLight}
+          maximumTrackTintColor={COLORS.borderDark}
           thumbTintColor={COLORS.primary}
           onSlidingStart={() => {
             setIsSeeking(true);
             setSeekPosition(position);
+            seekTargetRef.current = null;
           }}
           onValueChange={(value) => {
             setSeekPosition(value * duration);
           }}
           onSlidingComplete={async (value) => {
-            await seekTo(value * duration);
-            setIsSeeking(false);
+            const targetPosition = value * duration;
+            setSeekPosition(targetPosition);
+            seekTargetRef.current = targetPosition;
+            await seekTo(targetPosition);
+            // Don't set isSeeking to false here - let the useEffect handle it
+            // once the position catches up
           }}
         />
         <View style={styles.timeRow}>
@@ -165,12 +155,17 @@ export default function PlayerScreen() {
         <TouchableOpacity
           style={styles.playButton}
           onPress={togglePlayPause}
+          disabled={isLoading}
         >
-          <IconButton
-            icon={isPlaying ? 'pause' : 'play'}
-            iconColor={COLORS.background}
-            size={32}
-          />
+          {isLoading ? (
+            <ActivityIndicator size={32} color={COLORS.background} />
+          ) : (
+            <IconButton
+              icon={isPlaying ? 'pause' : 'play'}
+              iconColor={COLORS.background}
+              size={32}
+            />
+          )}
         </TouchableOpacity>
         {/* Seek Forward */}
         <IconButton
@@ -218,61 +213,6 @@ export default function PlayerScreen() {
             />
           ))}
         </Menu>
-
-        {/* Sleep Timer */}
-        {/* <Menu
-          visible={sleepMenuVisible}
-          onDismiss={() => setSleepMenuVisible(false)}
-          anchor={
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={() => setSleepMenuVisible(true)}
-            >
-              <IconButton
-                icon="moon-waning-crescent"
-                iconColor={
-                  sleepTimerEndTime ? COLORS.primary : COLORS.textSecondary
-                }
-                size={24}
-              />
-              {sleepTimeRemaining !== null && (
-                <Text style={styles.sleepTime}>{sleepTimeRemaining}m</Text>
-              )}
-            </TouchableOpacity>
-          }
-        >
-          <Menu.Item
-            onPress={() => {
-              clearSleepTimer();
-              setSleepMenuVisible(false);
-            }}
-            title="Off"
-            leadingIcon={!sleepTimerEndTime ? 'check' : undefined}
-          />
-          <Divider />
-          {SLEEP_TIMER_OPTIONS.map((minutes) => (
-            <Menu.Item
-              key={minutes}
-              onPress={() => {
-                setSleepTimer(minutes);
-                setSleepMenuVisible(false);
-              }}
-              title={`${minutes} minutes`}
-            />
-          ))}
-        </Menu> */}
-
-        {/* Queue */}
-        {/* <TouchableOpacity style={styles.controlButton}>
-          <IconButton
-            icon="playlist-play"
-            iconColor={COLORS.textSecondary}
-            size={24}
-          />
-          {queue.length > 0 && (
-            <Text style={styles.queueCount}>{queue.length}</Text>
-          )}
-        </TouchableOpacity> */}
       </View>
 
       <View style={{ height: insets.bottom + 20 }} />
@@ -285,6 +225,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  content: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',

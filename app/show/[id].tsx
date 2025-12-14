@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ImageBackground,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Text, IconButton, Chip, Button } from 'react-native-paper';
@@ -136,12 +137,14 @@ const ShowHeader = memo(function ShowHeader({
 function EpisodeCard({
   episode,
   isPlaying,
+  isLoading,
   isDownloaded,
   onPlay,
   onPress,
 }: {
   episode: Episode;
   isPlaying: boolean;
+  isLoading: boolean;
   isDownloaded: boolean;
   onPlay: () => void;
   onPress: () => void;
@@ -183,12 +186,16 @@ function EpisodeCard({
             )}
           </View>
         </View>
-        <IconButton
-          icon={isPlaying ? 'pause-circle' : 'play-circle'}
-          iconColor={COLORS.primary}
-          size={44}
-          onPress={onPlay}
-        />
+{isLoading ? (
+          <ActivityIndicator size={44} color={COLORS.primary} style={{ marginHorizontal: 12 }} />
+        ) : (
+          <IconButton
+            icon={isPlaying ? 'pause-circle' : 'play-circle'}
+            iconColor={COLORS.primary}
+            size={44}
+            onPress={onPlay}
+          />
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -199,7 +206,7 @@ export default function ShowDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { getShowById, getEpisodesByShowId } = useRSSFeed();
-  const { playEpisode, currentEpisode, isPlaying, togglePlayPause } = useAudioPlayer();
+  const { playEpisode, currentEpisode, isPlaying, isLoading, togglePlayPause } = useAudioPlayer();
   const { isDownloaded } = useDownloads();
   const playerCurrentEpisode = usePlayerStore((s) => s.currentEpisode);
 
@@ -278,10 +285,12 @@ export default function ShowDetailScreen() {
         renderItem={({ item }) => {
           const isCurrentEpisode = currentEpisode?.id === item.id;
           const isEpisodePlaying = isCurrentEpisode && isPlaying;
+          const isEpisodeLoading = isCurrentEpisode && isLoading;
           return (
             <EpisodeCard
               episode={item}
               isPlaying={isEpisodePlaying}
+              isLoading={isEpisodeLoading}
               isDownloaded={isDownloaded(item.id)}
               onPlay={() => {
                 if (isCurrentEpisode) {

@@ -1,21 +1,22 @@
 {
   "expo": {
-    "name": "Momin Lectures",
+    "name": "Momin Mahmood Lectures",
     "slug": "momin-podcast-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon-new.png",
     "userInterfaceStyle": "automatic",
-    "scheme": "momin-podcast",
+    "scheme": "momin-mahmood-lectures",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-icon-new.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1a1a2e"
+      "backgroundColor": "#0A1612"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mominmahmood.lectures",
+      "bundleIdentifier": "com.mindchat.qalectures",
+      "icon": "./assets/icon-new.png",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
@@ -23,10 +24,10 @@
       }
     },
     "android": {
-      "package": "com.mominmahmood.lectures",
+      "package": "com.mindchat.qalectures",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1a1a2e"
+        "foregroundImage": "./assets/adaptive-icon-new.png",
+        "backgroundColor": "#0A1612"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -39,7 +40,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon-new.png"
     },
     "plugins": [
       "expo-router",

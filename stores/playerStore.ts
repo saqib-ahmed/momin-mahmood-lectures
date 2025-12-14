@@ -9,6 +9,7 @@ interface PlayerState {
   isPlaying: boolean;
   isLoading: boolean;
   isBuffering: boolean;
+  isPlayRequested: boolean; // Track if play was initiated (to prevent flicker)
   position: number; // milliseconds
   duration: number; // milliseconds
   playbackSpeed: number;
@@ -30,6 +31,7 @@ interface PlayerState {
   setIsPlaying: (isPlaying: boolean) => void;
   setIsLoading: (isLoading: boolean) => void;
   setIsBuffering: (isBuffering: boolean) => void;
+  setIsPlayRequested: (isPlayRequested: boolean) => void;
   setPosition: (position: number) => void;
   setDuration: (duration: number) => void;
   setPlaybackSpeed: (speed: number) => void;
@@ -63,6 +65,7 @@ export const usePlayerStore = create<PlayerState>()(
       isPlaying: false,
       isLoading: false,
       isBuffering: false,
+      isPlayRequested: false,
       position: 0,
       duration: 0,
       playbackSpeed: 1.0,
@@ -85,9 +88,16 @@ export const usePlayerStore = create<PlayerState>()(
         set({ currentEpisode: episode, position: 0, duration: 0, playHistory: newHistory });
       },
 
-      setIsPlaying: (isPlaying) => set({ isPlaying }),
+      setIsPlaying: (isPlaying) => {
+        set({ isPlaying });
+        // Clear playRequested when we start playing (prevents flicker)
+        if (isPlaying) {
+          set({ isPlayRequested: false });
+        }
+      },
       setIsLoading: (isLoading) => set({ isLoading }),
       setIsBuffering: (isBuffering) => set({ isBuffering }),
+      setIsPlayRequested: (isPlayRequested) => set({ isPlayRequested }),
       setPosition: (position) => set({ position }),
       setDuration: (duration) => set({ duration }),
       setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
@@ -228,6 +238,7 @@ export const usePlayerStore = create<PlayerState>()(
           isPlaying: false,
           isLoading: false,
           isBuffering: false,
+          isPlayRequested: false,
           position: 0,
           duration: 0,
         });
@@ -271,6 +282,7 @@ export const usePlayerStore = create<PlayerState>()(
           state.isPlaying = false;
           state.isLoading = false;
           state.isBuffering = false;
+          state.isPlayRequested = false;
         }
       },
     }

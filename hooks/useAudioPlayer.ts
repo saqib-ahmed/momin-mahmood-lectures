@@ -12,25 +12,23 @@ export function useAudioPlayer() {
     currentEpisode,
     isPlaying,
     isLoading,
-    isBuffering,
+    isPlayRequested,
     position,
     duration,
     playbackSpeed,
-    sleepTimerEndTime,
     queue,
     playHistory,
     setCurrentEpisode,
     setIsPlaying,
     setIsLoading,
     setIsBuffering,
-    setPosition,
+    setIsPlayRequested,
     setDuration,
     setPlaybackSpeed,
     savePosition,
     getSavedPosition,
     playNext,
     playPrevious,
-    clearSleepTimer,
     setQueue,
   } = usePlayerStore();
 
@@ -44,8 +42,11 @@ export function useAudioPlayer() {
 
   // Derive playback state directly from audioState for real-time UI
   const isPlayingNow = audioState.state === AudioProState.PLAYING;
-  const isLoadingNow = audioState.state === AudioProState.LOADING;
-  const isBufferingNow = audioState.state === AudioProState.LOADING;
+  const isAudioLoading = audioState.state === AudioProState.LOADING;
+  // Show loading if: audio is loading OR play was requested but hasn't started yet
+  // This prevents the flicker from loading → play → pause
+  const isLoadingNow = isAudioLoading || (isPlayRequested && !isPlayingNow);
+  const isBufferingNow = isAudioLoading;
   const positionNow = audioState.position ?? position;
   const durationNow = audioState.duration ?? duration;
 
@@ -54,11 +55,11 @@ export function useAudioPlayer() {
     if (isPlayingNow !== isPlaying) {
       setIsPlaying(isPlayingNow);
     }
-    if (isLoadingNow !== isLoading) {
-      setIsLoading(isLoadingNow);
-      setIsBuffering(isLoadingNow);
+    if (isAudioLoading !== isLoading) {
+      setIsLoading(isAudioLoading);
+      setIsBuffering(isAudioLoading);
     }
-  }, [isPlayingNow, isLoadingNow, isPlaying, isLoading, setIsPlaying, setIsLoading, setIsBuffering]);
+  }, [isPlayingNow, isAudioLoading, isPlaying, isLoading, setIsPlaying, setIsLoading, setIsBuffering]);
 
   // Sync duration to store (only when it changes significantly)
   useEffect(() => {
@@ -67,36 +68,7 @@ export function useAudioPlayer() {
     }
   }, [durationNow, duration, setDuration]);
 
-  const sleepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const positionSaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Sleep timer effect
-  useEffect(() => {
-    if (sleepTimerRef.current) {
-      clearTimeout(sleepTimerRef.current);
-      sleepTimerRef.current = null;
-    }
-
-    if (sleepTimerEndTime && isPlaying) {
-      const timeUntilSleep = sleepTimerEndTime - Date.now();
-      if (timeUntilSleep > 0) {
-        sleepTimerRef.current = setTimeout(async () => {
-          await audioService.pause();
-          clearSleepTimer();
-        }, timeUntilSleep);
-      } else {
-        // Timer already expired
-        audioService.pause();
-        clearSleepTimer();
-      }
-    }
-
-    return () => {
-      if (sleepTimerRef.current) {
-        clearTimeout(sleepTimerRef.current);
-      }
-    };
-  }, [sleepTimerEndTime, isPlaying, clearSleepTimer]);
 
   // Auto-save position periodically
   useEffect(() => {
@@ -132,6 +104,7 @@ export function useAudioPlayer() {
             // Play next track from queue
             const nextEpisode = playerState.playNext();
             if (nextEpisode) {
+              usePlayerStore.getState().setIsPlayRequested(true);
               const localPath = useDownloadStore.getState().getLocalPath(nextEpisode.id);
               const uri = localPath || nextEpisode.audioUrl;
               const initialPosition = playerState.getSavedPosition(nextEpisode.id);
@@ -149,6 +122,7 @@ export function useAudioPlayer() {
         if (playerState.queue.length > 0) {
           const nextEpisode = playerState.playNext();
           if (nextEpisode) {
+            usePlayerStore.getState().setIsPlayRequested(true);
             const localPath = useDownloadStore.getState().getLocalPath(nextEpisode.id);
             const uri = localPath || nextEpisode.audioUrl;
             const initialPosition = playerState.getSavedPosition(nextEpisode.id);
@@ -171,6 +145,7 @@ export function useAudioPlayer() {
           // Go to previous track
           const prevEpisode = playerState.playPrevious();
           if (prevEpisode) {
+            usePlayerStore.getState().setIsPlayRequested(true);
             const localPath = useDownloadStore.getState().getLocalPath(prevEpisode.id);
             const uri = localPath || prevEpisode.audioUrl;
             const initialPosition = playerState.getSavedPosition(prevEpisode.id);
@@ -196,6 +171,7 @@ export function useAudioPlayer() {
   const playEpisode = useCallback(
     async (episode: Episode, startFromBeginning = false) => {
       setIsLoading(true);
+      setIsPlayRequested(true);
 
       try {
         // Use local file if downloaded, otherwise stream
@@ -226,9 +202,10 @@ export function useAudioPlayer() {
       } catch (error) {
         console.error('Error playing episode:', error);
         setIsLoading(false);
+        setIsPlayRequested(false);
       }
     },
-    [getLocalPath, getSavedPosition, getEpisodesByShowId, playbackSpeed, setCurrentEpisode, setIsLoading, setQueue]
+    [getLocalPath, getSavedPosition, getEpisodesByShowId, playbackSpeed, setCurrentEpisode, setIsLoading, setIsPlayRequested, setQueue]
   );
 
   // Toggle play/pause
@@ -242,28 +219,41 @@ export function useAudioPlayer() {
     } else {
       // Check if we have a track loaded
       if (audioService.hasTrack()) {
+        setIsPlayRequested(true);
         await audioService.resume();
       } else {
         // No track loaded, load and play
         await playEpisode(currentEpisode);
       }
     }
-  }, [currentEpisode, isPlayingNow, positionNow, savePosition, playEpisode]);
+  }, [currentEpisode, isPlayingNow, positionNow, savePosition, playEpisode, setIsPlayRequested]);
 
   // Seek forward
   const seekForward = useCallback(async () => {
+    // Set isPlayRequested if playing to prevent flicker during seek
+    if (isPlayingNow) {
+      setIsPlayRequested(true);
+    }
     await audioService.seekForward(skipForwardSeconds * 1000);
-  }, [skipForwardSeconds]);
+  }, [skipForwardSeconds, isPlayingNow, setIsPlayRequested]);
 
   // Seek backward
   const seekBackward = useCallback(async () => {
+    // Set isPlayRequested if playing to prevent flicker during seek
+    if (isPlayingNow) {
+      setIsPlayRequested(true);
+    }
     await audioService.seekBackward(skipBackwardSeconds * 1000);
-  }, [skipBackwardSeconds]);
+  }, [skipBackwardSeconds, isPlayingNow, setIsPlayRequested]);
 
   // Seek to position
   const seekTo = useCallback(async (positionMillis: number) => {
+    // Set isPlayRequested if playing to prevent flicker during seek
+    if (isPlayingNow) {
+      setIsPlayRequested(true);
+    }
     await audioService.seekTo(positionMillis);
-  }, []);
+  }, [isPlayingNow, setIsPlayRequested]);
 
   // Change playback speed
   const changePlaybackSpeed = useCallback(
@@ -290,6 +280,7 @@ export function useAudioPlayer() {
 
     const nextEpisode = playNext();
     if (nextEpisode) {
+      setIsPlayRequested(true);
       // Get local path for the next episode
       const localPath = getLocalPath(nextEpisode.id);
       const uri = localPath || nextEpisode.audioUrl;
@@ -301,7 +292,7 @@ export function useAudioPlayer() {
         playbackSpeed,
       });
     }
-  }, [currentEpisode, positionNow, savePosition, playNext, getLocalPath, getSavedPosition, playbackSpeed]);
+  }, [currentEpisode, positionNow, savePosition, playNext, getLocalPath, getSavedPosition, playbackSpeed, setIsPlayRequested]);
 
   // Play previous or restart current track
   const skipToPrevious = useCallback(async () => {
@@ -314,6 +305,7 @@ export function useAudioPlayer() {
     // Otherwise, go to previous if available
     const prevEpisode = playPrevious();
     if (prevEpisode) {
+      setIsPlayRequested(true);
       // Get local path for the previous episode
       const localPath = getLocalPath(prevEpisode.id);
       const uri = localPath || prevEpisode.audioUrl;
@@ -328,7 +320,7 @@ export function useAudioPlayer() {
       // No previous, just restart
       await audioService.seekTo(0);
     }
-  }, [positionNow, playPrevious, getLocalPath, getSavedPosition, playbackSpeed]);
+  }, [positionNow, playPrevious, getLocalPath, getSavedPosition, playbackSpeed, setIsPlayRequested]);
 
   return {
     // State - use real-time values from audioState for smooth UI
@@ -339,7 +331,6 @@ export function useAudioPlayer() {
     position: positionNow,
     duration: durationNow,
     playbackSpeed,
-    sleepTimerEndTime,
 
     // Actions
     playEpisode,

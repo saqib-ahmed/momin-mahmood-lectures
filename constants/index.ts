@@ -1,6 +1,6 @@
 import { AppSettings } from '../types';
 
-export const APP_NAME = 'Momin Lectures';
+export const APP_NAME = 'Momin Mahmood Lectures';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   downloadOverWifiOnly: true,
@@ -62,6 +62,7 @@ export const COLORS = {
   // Decorative border color for geometric patterns
   border: '#2A4A3E',
   borderLight: '#3D6B5A',
+  borderDark: '#75C79C',
 };
 
 export const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
