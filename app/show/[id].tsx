@@ -52,7 +52,6 @@ const ShowHeader = memo(function ShowHeader({
       </View>
       <View style={styles.showDetails}>
         <Text style={styles.showTitle}>{show.title}</Text>
-        <Text style={styles.showAuthor}>{show.author}</Text>
         <Text style={styles.episodeCount}>
           {show.episodeCount} {show.episodeCount === 1 ? 'Lecture' : 'Lectures'}
         </Text>
@@ -164,11 +163,8 @@ function EpisodeCard({
               S{episode.season} E{episode.episodeNumber}
             </Text>
           )} */}
-          <Text style={styles.episodeTitle} numberOfLines={2}>
+          <Text style={styles.episodeTitle} numberOfLines={4}>
             {episode.title}
-          </Text>
-          <Text style={styles.episodeDescription} numberOfLines={2}>
-            {stripHtml(episode.description)}
           </Text>
           <View style={styles.episodeFooter}>
             <Text style={styles.episodeDuration}>
@@ -355,12 +351,16 @@ const styles = StyleSheet.create({
   },
   showDetails: {
     marginBottom: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   showTitle: {
     fontSize: 22,
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 6,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   showAuthor: {
     fontSize: 16,
@@ -443,8 +443,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   episodeImage: {
-    width: 60,
-    height: 60,
+    width: 100,
+    height: 100,
     borderRadius: 8,
     backgroundColor: COLORS.surfaceLight,
     marginRight: 12,
@@ -462,6 +462,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 4,
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   episodeDescription: {
     fontSize: 13,

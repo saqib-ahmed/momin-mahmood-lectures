@@ -223,16 +223,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 8,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   showName: {
     fontSize: 16,
     color: COLORS.textSecondary,
     marginBottom: 4,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   date: {
     fontSize: 14,
     color: COLORS.textSecondary,
     marginBottom: 20,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   playButton: {
     backgroundColor: COLORS.primary,
@@ -288,10 +294,14 @@ const styles = StyleSheet.create({
   },
   descriptionSection: {
     marginTop: 8,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   description: {
     fontSize: 15,
     color: COLORS.textSecondary,
     lineHeight: 24,
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
 });

@@ -33,7 +33,7 @@ function LectureSeriesCard({ show, onPress }: { show: Show; onPress: () => void 
         cachePolicy="disk"
       />
       <View style={styles.lectureInfo}>
-        <Text style={styles.lectureTitle} numberOfLines={2}>
+        <Text style={styles.lectureTitle} numberOfLines={4}>
           {show.title}
         </Text>
         <View style={styles.lectureMetaRow}>
@@ -41,10 +41,8 @@ function LectureSeriesCard({ show, onPress }: { show: Show; onPress: () => void 
           <Text style={styles.lectureMeta}>
             {show.episodeCount} {show.episodeCount === 1 ? 'Lecture' : 'Lectures'}
           </Text>
+          <GoldenMandala size={14} />
         </View>
-        <Text style={styles.lectureAuthor} numberOfLines={1}>
-          {show.author}
-        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -343,20 +341,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 6,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   lectureMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+    justifyContent: 'center',
   },
   lectureMeta: {
     fontSize: 13,
     color: COLORS.gold,
     marginLeft: 6,
+    marginRight: 6,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   lectureAuthor: {
     fontSize: 13,
     color: COLORS.textSecondary,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   emptyContainer: {
     flex: 1,

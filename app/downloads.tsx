@@ -39,13 +39,13 @@ function DownloadedEpisodeCard({
         cachePolicy="disk"
       />
       <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={2}>
+        <Text style={styles.title} numberOfLines={4}>
           {episode.title}
         </Text>
         <Text style={styles.meta}>
           {formatDuration(episode.duration)} &middot; {fileSizeMB} MB
         </Text>
-        <Text style={styles.date}>Downloaded {downloadDate}</Text>
+        {/* <Text style={styles.date}>Downloaded {downloadDate}</Text> */}
       </View>
       <View style={styles.actions}>
         <IconButton
@@ -238,15 +238,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 4,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   meta: {
     fontSize: 12,
     color: COLORS.textSecondary,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   date: {
     fontSize: 11,
     color: COLORS.textSecondary,
     marginTop: 2,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   actions: {
     flexDirection: 'row',

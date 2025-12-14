@@ -91,7 +91,7 @@ export default function PlayerScreen() {
 
       {/* Episode Info */}
       <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={2}>
+        <Text style={styles.title} numberOfLines={4}>
           {currentEpisode.title}
         </Text>
       </View>

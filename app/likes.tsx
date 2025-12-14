@@ -47,7 +47,7 @@ function LikedEpisodeCard({
         cachePolicy="disk"
       />
       <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={2}>
+        <Text style={styles.title} numberOfLines={4}>
           {episode.title}
         </Text>
         <Text style={styles.meta}>
@@ -241,10 +241,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 4,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   meta: {
     fontSize: 12,
     color: COLORS.textSecondary,
+    textAlign: 'center',
+    writingDirection: 'rtl',
   },
   actions: {
     flexDirection: 'row',
